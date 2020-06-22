@@ -1,0 +1,10 @@
+{
+  "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
+  "server": "",
+  "port": "4444",
+  "ssl": false,
+  "cert": {
+    "ssl_key": "./ssl/server.key",
+    "ssl_cert": "./ssl/server.crt"
+  }
+}

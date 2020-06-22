@@ -1,0 +1,11 @@
+{
+  "controller": {
+    "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
+    "server": "localhost",
+    "port": "4444",
+    "ssl": false
+  },
+  "interface": {
+    "name": "Ethernet"
+  }
+}
