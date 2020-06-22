@@ -20,19 +20,20 @@ type CommandCenter struct {
 }
 
 func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
+
 	commCtr := new(CommandCenter)
-	addr := flag.String("addr", fmt.Sprintf("%s:%s", conf.Server, conf.Port),"https service address")
+	addr := flag.String("addr", fmt.Sprintf("%s:%s", conf.Server, conf.Port), "https service address")
 	flag.Parse()
 
 	commCtr.ssl = conf.Ssl
-	commCtr.upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024,}
+	commCtr.upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	http.HandleFunc("/ws", commCtr.wsListener)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w,"<h1>goswitch server controller</h1>")
+		fmt.Fprintf(w, "<h1>goswitch server controller</h1>")
 	})
 
 	if commCtr.ssl {
-		err := http.ListenAndServeTLS(*addr,conf.Cert.SslCert, conf.Cert.SslKey, nil)
+		err := http.ListenAndServeTLS(*addr, conf.Cert.SslCert, conf.Cert.SslKey, nil)
 		if err != nil {
 			log.Printf("Error starting server -> %v", err)
 		}
@@ -94,4 +95,11 @@ func (commCtr *CommandCenter) Reconnect(data string) {
 
 func (commCtr *CommandCenter) Error(data string) {
 	log.Printf("Error function, data: %s", data)
+}
+
+func (commCtr *CommandCenter) Echo(data string) {
+	echo := new(model.Echo)
+	json.Unmarshal([]byte(data), &echo)
+
+	commCtr.conn.WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, echo.Message)})
 }

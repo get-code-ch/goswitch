@@ -1,9 +1,15 @@
 package config
 
 const defaultDeviceConfigFile = "./config/device.json"
+const defaultCliConfigFile = "./config/cli.json"
 const defaultControllerConfigFile = "./config/commctr.json"
 
 type ConfDevice struct {
+	Controller ConfCommCtr   `json:"controller"`
+	Interface  ConfInterface `json:"interface"`
+}
+
+type ConfCli struct {
 	Controller ConfCommCtr   `json:"controller"`
 	Interface  ConfInterface `json:"interface"`
 }
