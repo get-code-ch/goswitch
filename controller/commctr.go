@@ -78,7 +78,7 @@ func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request)
 
 func (commCtr *CommandCenter) Invoke(function model.Action, args ...interface{}) {
 	inputs := make([]reflect.Value, len(args))
-	for i, _ := range args {
+	for i := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
 
@@ -90,10 +90,14 @@ func (commCtr *CommandCenter) Invoke(function model.Action, args ...interface{})
 	}
 }
 
-func (commCtr *CommandCenter) Register(data string, buddy model.Node) {
-	client := new(model.Node)
-	json.Unmarshal([]byte(data), &client)
-	log.Printf("Device %s request register...", client.Id)
+func (commCtr *CommandCenter) Register(data interface{}, client model.Node) {
+	/*
+		client := new(model.Node)
+		json.Unmarshal([]byte(data), &client)
+	*/
+	//log.Printf("Device %s request register...", data["Id"])
+	d := data.(map[string]interface{})
+	log.Printf("Id -> %s\n", d["Id"].(string))
 	switch client.Node {
 	case model.Device:
 		commCtr.devices[client.Id] = commCtr.conn
