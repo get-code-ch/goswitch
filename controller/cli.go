@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -16,6 +15,8 @@ import (
 )
 
 type Cli struct {
+	me       model.Node
+	srv      model.Node
 	active   bool
 	upgrader websocket.Upgrader
 	conn     *websocket.Conn
@@ -47,14 +48,31 @@ func NewCli(conf *config.ConfCli) *Cli {
 		cli.Name = "Unknown"
 	}
 
-	d, err := json.Marshal(cli)
-	if err != nil {
-		log.Printf("Error marshaling cli: %v", err)
-	}
-	msg := model.Message{Action: "Register", Data: string(d)}
-	cli.conn.WriteJSON(msg)
+	cli.me = model.Node{Node: model.Cli, Id: cli.Name}
+	cli.srv = model.Node{Node: model.Server, Id: "CommCtr"}
+
+	/*
+		d, err := json.Marshal(cli.me)
+		if err != nil {
+			log.Printf("Error marshaling cli: %v", err)
+		}
+	*/
+	// Send Register message
+	//msg := model.Message{Action: "Register", Data: string(d), Client: cli.me, Server: cli.srv}
+	SendMessage(cli, model.Register, cli.me)
 
 	return cli
+}
+
+func (cli *Cli) Send(action model.Action, data interface{}) {
+	/*
+			d, err := json.Marshal(cli.me)
+		if err != nil {
+			log.Printf("Error marshaling device: %v", err)
+		}
+	*/
+
+	cli.conn.WriteJSON(model.Message{Action: action, Data: data, Client: cli.me, Server: cli.srv})
 }
 
 func (cli *Cli) Listen(channel chan int) {
@@ -64,18 +82,14 @@ func (cli *Cli) Listen(channel chan int) {
 		err := cli.conn.ReadJSON(&msg)
 		if err != nil {
 			if err.(*net.OpError).Err.(*os.SyscallError).Error() == "wsarecv: An existing connection was forcibly closed by the remote host." {
-				log.Printf("Connection closed by peer %v", err)
+				log.Printf("Node closed by peer %v", err)
 				cli.conn = nil
 				for {
 					time.Sleep(5 * time.Second)
 					cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
 					if err == nil {
 						log.Printf("Device reconnected\n")
-						d, err := json.Marshal(cli)
-						if err != nil {
-							log.Printf("Error marshaling device: %v", err)
-						}
-						cli.conn.WriteJSON(model.Message{Action: "Reconnect", Data: string(d)})
+						SendMessage(cli, model.Reconnect, cli.me)
 						break
 					}
 				}
@@ -94,20 +108,16 @@ func (cli *Cli) Listen(channel chan int) {
 
 }
 
-func (cli *Cli) Send(msg string) {
-	cli.conn.WriteJSON(model.Message{Action: "Register", Data: msg})
-}
-
 func (cli *Cli) Echo(msg string) {
-	cli.conn.WriteJSON(model.Message{Action: "Echo", Data: fmt.Sprintf(`{"Message":"%s"}`, msg)})
+	SendMessage(cli, model.Echo, msg)
 }
 
-func (cli *Cli) Invoke(function string, data string) {
+func (cli *Cli) Invoke(function model.Action, data interface{}) {
 	inputs := make([]reflect.Value, 1)
 	inputs[0] = reflect.ValueOf(data)
-	fnc := reflect.ValueOf(cli).MethodByName(function)
+	fnc := reflect.ValueOf(cli).MethodByName(string(function))
 	if !fnc.IsValid() {
-		cli.conn.WriteJSON(model.Message{Action: "Error", Data: fmt.Sprintf("Action %s not found", function)})
+		SendMessage(cli, model.Error, fmt.Sprintf("Action %s not found", function))
 	} else {
 		fnc.Call(inputs)
 	}
@@ -121,6 +131,7 @@ func (cli *Cli) Reconnect(data string) {
 	log.Printf("Reconnect function, data: %s", data)
 }
 
+/*
 func (cli *Cli) Acknowledge(data string) {
 	var err error
 	ack := new(model.Acknowledge)
@@ -131,3 +142,4 @@ func (cli *Cli) Acknowledge(data string) {
 		fmt.Printf("Acknowledge Error: %s\n", err.Error())
 	}
 }
+*/

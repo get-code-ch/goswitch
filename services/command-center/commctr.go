@@ -6,10 +6,12 @@ import (
 	"log"
 )
 
-
 func main() {
+	receiver := make(chan int)
+
 	c := config.NewCommCtrConfig("")
 	log.Printf("Config loaded... %v", c)
-	controller.NewCommandCenter(c)
-
+	comCtr := controller.NewCommandCenter()
+	go comCtr.Listen(c, receiver)
+	<-receiver
 }

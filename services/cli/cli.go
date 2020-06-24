@@ -18,7 +18,7 @@ func main() {
 	conf := config.NewCliConfig("")
 	log.Printf("Config loaded... %v", conf.Controller)
 	c := controller.NewCli(conf)
-	go c.Listen(receiver)
+	go controller.WaitMessages(c, receiver)
 
 	for {
 		fmt.Printf("> ")

@@ -22,7 +22,7 @@ type Device struct {
 	conn       *websocket.Conn
 	url        url.URL
 	ssl        bool
-	MacAddress string          `json:"mac_address"`
+	MacAddress string `json:"mac_address"`
 }
 
 func NewDevice(conf *config.ConfDevice) *Device {
@@ -45,7 +45,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.setMacAddress(conf.Interface.Name)
 
-	d, err := json.Marshal(device)
+	d, err := json.Marshal(model.Node{Node: model.Device, Id: device.MacAddress})
 	if err != nil {
 		log.Printf("Error marshaling device: %v", err)
 	}
@@ -75,14 +75,14 @@ func (device *Device) Listen(channel chan int) {
 		err := device.conn.ReadJSON(&msg)
 		if err != nil {
 			if err.(*net.OpError).Err.(*os.SyscallError).Error() == "wsarecv: An existing connection was forcibly closed by the remote host." {
-				log.Printf("Connection closed by peer %v", err)
+				log.Printf("Node closed by peer %v", err)
 				device.conn = nil
 				for {
 					time.Sleep(5 * time.Second)
 					device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
 					if err == nil {
 						log.Printf("Device reconnected\n")
-						d, err := json.Marshal(device)
+						d, err := json.Marshal(model.Node{Node: model.Device, Id: device.MacAddress})
 						if err != nil {
 							log.Printf("Error marshaling device: %v", err)
 						}
@@ -109,10 +109,10 @@ func (device *Device) Send(msg string) {
 	device.conn.WriteJSON(model.Message{Action: "Register", Data: msg})
 }
 
-func (device *Device) Invoke(function string, data string) {
+func (device *Device) Invoke(function model.Action, data interface{}) {
 	inputs := make([]reflect.Value, 1)
 	inputs[0] = reflect.ValueOf(data)
-	fnc := reflect.ValueOf(device).MethodByName(function)
+	fnc := reflect.ValueOf(device).MethodByName(string(function))
 	if !fnc.IsValid() {
 		device.conn.WriteJSON(model.Message{Action: "Error", Data: fmt.Sprintf("Action %s not found", function)})
 	} else {
