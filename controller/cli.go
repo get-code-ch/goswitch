@@ -48,23 +48,23 @@ func NewCli(conf *config.ConfCli) *Cli {
 		cli.Name = "Unknown"
 	}
 
-	cli.me = model.Node{Node: model.Cli, Id: cli.Name}
-	cli.srv = model.Node{Node: model.Server, Id: "CommCtr"}
+	cli.me = model.Node{Node: model.CLI, Id: cli.Name}
+	cli.srv = model.Node{Node: model.SERVER, Id: "CommCtr"}
 
 	/*
 		d, err := json.Marshal(cli.me)
 		if err != nil {
-			log.Printf("Error marshaling cli: %v", err)
+			log.Printf("ERROR marshaling cli: %v", err)
 		}
 	*/
-	// Send Register message
-	//msg := model.Message{Action: "Register", Data: string(d), Client: cli.me, Server: cli.srv}
-	SendMessage(cli, model.Register, cli.me, nil)
+	// Send REGISTER message
+	//msg := model.Message{Action: "REGISTER", Data: string(d), Client: cli.me, SERVER: cli.srv}
+	SendMessage(cli, nil, model.REGISTER, cli.me)
 
 	return cli
 }
 
-func (cli *Cli) Send(action model.Action, data interface{}, conn *websocket.Conn) {
+func (cli *Cli) Send(conn *websocket.Conn, action model.Action, data interface{}) {
 	cli.conn.WriteJSON(model.Message{Action: action, Data: data, Client: cli.me, Server: cli.srv})
 }
 
@@ -81,14 +81,14 @@ func (cli *Cli) Listen(channel chan int) {
 					time.Sleep(5 * time.Second)
 					cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
 					if err == nil {
-						log.Printf("Device reconnected\n")
-						SendMessage(cli, model.Reconnect, cli.me, nil)
+						log.Printf("DEVICE reconnected\n")
+						SendMessage(cli, nil, model.RECONNECT, cli.me)
 						break
 					}
 				}
 				continue
 			} else {
-				log.Printf("Error reading websocket --> %v", err)
+				log.Printf("ERROR reading websocket --> %v", err)
 				close(channel)
 				return
 			}
@@ -102,7 +102,7 @@ func (cli *Cli) Listen(channel chan int) {
 }
 
 func (cli *Cli) Echo(msg string) {
-	SendMessage(cli, model.Echo, msg, nil)
+	SendMessage(cli, nil, model.ECHO, msg)
 }
 
 func (cli *Cli) Invoke(function model.Action, data interface{}) {
@@ -110,7 +110,7 @@ func (cli *Cli) Invoke(function model.Action, data interface{}) {
 	inputs[0] = reflect.ValueOf(data)
 	fnc := reflect.ValueOf(cli).MethodByName(string(function))
 	if !fnc.IsValid() {
-		SendMessage(cli, model.Error, fmt.Sprintf("Action %s not found", function), nil)
+		SendMessage(cli, nil, model.ERROR, fmt.Sprintf("Action %s not found", function))
 	} else {
 		fnc.Call(inputs)
 	}
@@ -121,18 +121,18 @@ func (cli *Cli) Accept(data string) {
 }
 
 func (cli *Cli) Reconnect(data string) {
-	log.Printf("Reconnect function, data: %s", data)
+	log.Printf("RECONNECT function, data: %s", data)
 }
 
 /*
-func (cli *Cli) Acknowledge(data string) {
+func (cli *CLI) Acknowledge(data string) {
 	var err error
 	ack := new(model.Acknowledge)
 	err = json.Unmarshal([]byte(data), &ack)
 	if err == nil {
 		fmt.Printf("Acknowledge: %s\n", ack.Message)
 	} else {
-		fmt.Printf("Acknowledge Error: %s\n", err.Error())
+		fmt.Printf("Acknowledge ERROR: %s\n", err.ERROR())
 	}
 }
 */

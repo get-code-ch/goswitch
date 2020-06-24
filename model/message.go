@@ -3,11 +3,12 @@ package model
 type Action string
 
 const (
-	Register    Action = "Register"
-	Reconnect   Action = "Reconnect"
-	Echo        Action = "Echo"
-	Error       Action = "Error"
-	Acknowledge Action = "Acknowledge"
+	REGISTER    Action = "Register"
+	RECONNECT   Action = "Reconnect"
+	ECHO        Action = "Echo"
+	ERROR       Action = "Error"
+	ACKNOWLEDGE Action = "Acknowledge"
+	ACCEPT      Action = "Accept"
 )
 
 type Message struct {

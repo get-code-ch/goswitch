@@ -51,7 +51,7 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 	if commCtr.ssl {
 		err := http.ListenAndServeTLS(*addr, commCtr.cert.SslCert, commCtr.cert.SslKey, nil)
 		if err != nil {
-			log.Printf("Error starting server -> %v", err)
+			log.Printf("ERROR starting server -> %v", err)
 		}
 	} else {
 		http.ListenAndServe(*addr, nil)
@@ -65,76 +65,71 @@ func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request)
 	// Init connection
 	commCtr.conn, err = commCtr.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("Error handle wsListener --> %v", err)
+		log.Printf("ERROR handle wsListener --> %v", err)
 		return
 	}
+
+	// REGISTER client (DEVICE, CLI or GUI)
+	SendMessage(commCtr, commCtr.conn, model.REGISTER, nil)
 
 	// Wait for message
 	msg := new(model.Message)
 	for {
 		err := commCtr.conn.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("Error reading wsListener --> %v", err)
+			log.Printf("ERROR reading wsListener --> %v", err)
 			return
 		}
 
-		commCtr.Invoke(msg.Action, msg.Data, msg.Client)
+		switch msg.Client.Node {
+		case model.BROWSER, model.CLI:
+			commCtr.Invoke(commCtr.clients[msg.Client.Id], msg.Action, msg.Data, msg.Client)
+		case model.DEVICE:
+			commCtr.Invoke(commCtr.devices[msg.Client.Id], msg.Action, msg.Data, msg.Client)
+		}
 	}
 }
-func (commCtr *CommandCenter) Send(action model.Action, data interface{}, conn *websocket.Conn) {
+func (commCtr *CommandCenter) Send(conn *websocket.Conn, action model.Action, data interface{}) {
 	conn.WriteJSON(model.Message{Action: action, Data: data})
 }
 
-func (commCtr *CommandCenter) Invoke(function model.Action, args ...interface{}) {
-	inputs := make([]reflect.Value, len(args))
+func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action, args ...interface{}) {
+	inputs := make([]reflect.Value, len(args)+1)
+	inputs[0] = reflect.ValueOf(conn)
 	for i := range args {
-		inputs[i] = reflect.ValueOf(args[i])
+		inputs[i+1] = reflect.ValueOf(args[i])
 	}
 
 	fnc := reflect.ValueOf(commCtr).MethodByName(string(function))
 	if !fnc.IsValid() {
-		commCtr.conn.WriteJSON(model.Message{Action: "Error", Data: fmt.Sprintf("Action %s not found", function)})
+		commCtr.conn.WriteJSON(model.Message{Action: "ERROR", Data: fmt.Sprintf("Action %s not found", function)})
 	} else {
 		fnc.Call(inputs)
 	}
 }
 
-func (commCtr *CommandCenter) Register(data interface{}, client model.Node, conn *websocket.Conn) {
+func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
 	log.Printf("Id -> %s\n", d["Id"].(string))
-	switch client.Node {
-	case model.Device:
-		commCtr.devices[client.Id] = conn
-		commCtr.devices[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Device %s Accepted", client.Id)})
-	case model.Cli, model.Browser:
-		commCtr.clients[client.Id] = conn
-		commCtr.clients[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Node %s Accepted", client.Id)})
-	}
+	SendMessage(commCtr, conn, model.ACCEPT, nil)
 }
 
-func (commCtr *CommandCenter) Reconnect(data interface{}, client model.Node) {
+func (commCtr *CommandCenter) Reconnect(conn *websocket.Conn, data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
 	log.Printf("Id -> %s\n", d["Id"].(string))
-	switch client.Node {
-	case model.Device:
-		commCtr.devices[client.Id] = commCtr.conn
-		commCtr.devices[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Device %s Accepted", client.Id)})
-	case model.Cli, model.Browser:
-		commCtr.clients[client.Id] = commCtr.conn
-		commCtr.clients[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Node %s Accepted", client.Id)})
-	}
+	conn.WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("DEVICE %s Accepted", client.Id)})
 }
 
-func (commCtr *CommandCenter) Error(data string) {
-	log.Printf("Error function, data: %s", data)
+func (commCtr *CommandCenter) Error(conn *websocket.Conn, data string) {
+	log.Printf("ERROR function, data: %s", data)
 }
 
-func (commCtr *CommandCenter) Echo(data string, client model.Node) {
+func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data string, client model.Node) {
 
 	switch client.Node {
-	case model.Cli, model.Browser:
-		commCtr.clients[client.Id].WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
-	case model.Device:
-		commCtr.devices[client.Id].WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
+	case model.CLI, model.BROWSER:
+		conn.WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
+	case model.DEVICE:
+		conn.WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
 	}
 }

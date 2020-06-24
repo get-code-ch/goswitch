@@ -7,12 +7,12 @@ import (
 
 type Controller interface {
 	Listen(channel chan int)
-	Send(action model.Action, data interface{}, conn *websocket.Conn)
+	Send(conn *websocket.Conn, action model.Action, data interface{})
 	//Receive()
 }
 
-func SendMessage(controller Controller, action model.Action, data interface{}, conn *websocket.Conn) {
-	controller.Send(action, data, conn)
+func SendMessage(controller Controller, conn *websocket.Conn, action model.Action, data interface{}) {
+	controller.Send(conn, action, data)
 }
 
 func WaitMessages(controller Controller, channel chan int) {

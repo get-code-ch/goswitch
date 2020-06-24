@@ -11,7 +11,7 @@ func main() {
 
 	c := config.NewCommCtrConfig("")
 	log.Printf("Config loaded... %v", c)
-	comCtr := controller.NewCommandCenter()
-	go comCtr.Listen(c, receiver)
+	comCtr := controller.NewCommandCenter(c)
+	go controller.WaitMessages(comCtr, receiver)
 	<-receiver
 }

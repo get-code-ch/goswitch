@@ -45,11 +45,11 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.setMacAddress(conf.Interface.Name)
 
-	d, err := json.Marshal(model.Node{Node: model.Device, Id: device.MacAddress})
+	d, err := json.Marshal(model.Node{Node: model.DEVICE, Id: device.MacAddress})
 	if err != nil {
-		log.Printf("Error marshaling device: %v", err)
+		log.Printf("ERROR marshaling device: %v", err)
 	}
-	msg := model.Message{Action: "Register", Data: string(d)}
+	msg := model.Message{Action: "REGISTER", Data: string(d)}
 	device.conn.WriteJSON(msg)
 
 	return device
@@ -81,18 +81,18 @@ func (device *Device) Listen(channel chan int) {
 					time.Sleep(5 * time.Second)
 					device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
 					if err == nil {
-						log.Printf("Device reconnected\n")
-						d, err := json.Marshal(model.Node{Node: model.Device, Id: device.MacAddress})
+						log.Printf("DEVICE reconnected\n")
+						d, err := json.Marshal(model.Node{Node: model.DEVICE, Id: device.MacAddress})
 						if err != nil {
-							log.Printf("Error marshaling device: %v", err)
+							log.Printf("ERROR marshaling device: %v", err)
 						}
-						device.conn.WriteJSON(model.Message{Action: "Reconnect", Data: string(d)})
+						device.conn.WriteJSON(model.Message{Action: "RECONNECT", Data: string(d)})
 						break
 					}
 				}
 				continue
 			} else {
-				log.Printf("Error reading websocket --> %v", err)
+				log.Printf("ERROR reading websocket --> %v", err)
 				close(channel)
 				return
 			}
@@ -106,7 +106,7 @@ func (device *Device) Listen(channel chan int) {
 }
 
 func (device *Device) Send(msg string) {
-	device.conn.WriteJSON(model.Message{Action: "Register", Data: msg})
+	device.conn.WriteJSON(model.Message{Action: "REGISTER", Data: msg})
 }
 
 func (device *Device) Invoke(function model.Action, data interface{}) {
@@ -114,7 +114,7 @@ func (device *Device) Invoke(function model.Action, data interface{}) {
 	inputs[0] = reflect.ValueOf(data)
 	fnc := reflect.ValueOf(device).MethodByName(string(function))
 	if !fnc.IsValid() {
-		device.conn.WriteJSON(model.Message{Action: "Error", Data: fmt.Sprintf("Action %s not found", function)})
+		device.conn.WriteJSON(model.Message{Action: "ERROR", Data: fmt.Sprintf("Action %s not found", function)})
 	} else {
 		fnc.Call(inputs)
 	}
@@ -125,5 +125,5 @@ func (device *Device) Accept(data string) {
 }
 
 func (device *Device) Reconnect(data string) {
-	log.Printf("Reconnect function, data: %s", data)
+	log.Printf("RECONNECT function, data: %s", data)
 }

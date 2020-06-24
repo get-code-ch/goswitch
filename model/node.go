@@ -3,10 +3,10 @@ package model
 type NodeType string
 
 const (
-	Server  NodeType = "server"
-	Device  NodeType = "device"
-	Cli     NodeType = "cli"
-	Browser NodeType = "browser"
+	SERVER  NodeType = "server"
+	DEVICE  NodeType = "device"
+	CLI     NodeType = "cli"
+	BROWSER NodeType = "browser"
 )
 
 type Node struct {
