@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func NewCommCtrConfig(configFile string) (*ConfCommCtr) {
+func NewCommCtrConfig(configFile string) *ConfCommCtr {
 
 	// New config creation
 	c := new(ConfCommCtr)

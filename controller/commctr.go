@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -19,23 +18,30 @@ type CommandCenter struct {
 	devices  map[string]*websocket.Conn
 	clients  map[string]*websocket.Conn
 	ssl      bool
+	cert     config.ConfCertificate
+	server   string
+	port     string
 }
 
-func NewCommandCenter() *CommandCenter {
+func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 
 	commCtr := new(CommandCenter)
 
 	commCtr.devices = make(map[string]*websocket.Conn)
 	commCtr.clients = make(map[string]*websocket.Conn)
+	commCtr.ssl = conf.Ssl
+	commCtr.cert.SslCert = conf.Cert.SslCert
+	commCtr.cert.SslKey = conf.Cert.SslKey
+	commCtr.server = conf.Server
+	commCtr.port = conf.Port
 
 	return commCtr
 }
 
-func (commCtr *CommandCenter) Listen(conf *config.ConfCommCtr, channel chan int) {
-	addr := flag.String("addr", fmt.Sprintf("%s:%s", conf.Server, conf.Port), "https service address")
+func (commCtr *CommandCenter) Listen(channel chan int) {
+	addr := flag.String("addr", fmt.Sprintf("%s:%s", commCtr.server, commCtr.port), "https service address")
 	flag.Parse()
 
-	commCtr.ssl = conf.Ssl
 	commCtr.upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	http.HandleFunc("/ws", commCtr.wsListener)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +49,7 @@ func (commCtr *CommandCenter) Listen(conf *config.ConfCommCtr, channel chan int)
 	})
 
 	if commCtr.ssl {
-		err := http.ListenAndServeTLS(*addr, conf.Cert.SslCert, conf.Cert.SslKey, nil)
+		err := http.ListenAndServeTLS(*addr, commCtr.cert.SslCert, commCtr.cert.SslKey, nil)
 		if err != nil {
 			log.Printf("Error starting server -> %v", err)
 		}
@@ -75,6 +81,9 @@ func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request)
 		commCtr.Invoke(msg.Action, msg.Data, msg.Client)
 	}
 }
+func (commCtr *CommandCenter) Send(action model.Action, data interface{}, conn *websocket.Conn) {
+	conn.WriteJSON(model.Message{Action: action, Data: data})
+}
 
 func (commCtr *CommandCenter) Invoke(function model.Action, args ...interface{}) {
 	inputs := make([]reflect.Value, len(args))
@@ -90,12 +99,20 @@ func (commCtr *CommandCenter) Invoke(function model.Action, args ...interface{})
 	}
 }
 
-func (commCtr *CommandCenter) Register(data interface{}, client model.Node) {
-	/*
-		client := new(model.Node)
-		json.Unmarshal([]byte(data), &client)
-	*/
-	//log.Printf("Device %s request register...", data["Id"])
+func (commCtr *CommandCenter) Register(data interface{}, client model.Node, conn *websocket.Conn) {
+	d := data.(map[string]interface{})
+	log.Printf("Id -> %s\n", d["Id"].(string))
+	switch client.Node {
+	case model.Device:
+		commCtr.devices[client.Id] = conn
+		commCtr.devices[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Device %s Accepted", client.Id)})
+	case model.Cli, model.Browser:
+		commCtr.clients[client.Id] = conn
+		commCtr.clients[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Node %s Accepted", client.Id)})
+	}
+}
+
+func (commCtr *CommandCenter) Reconnect(data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
 	log.Printf("Id -> %s\n", d["Id"].(string))
 	switch client.Node {
@@ -106,13 +123,6 @@ func (commCtr *CommandCenter) Register(data interface{}, client model.Node) {
 		commCtr.clients[client.Id] = commCtr.conn
 		commCtr.clients[client.Id].WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("Node %s Accepted", client.Id)})
 	}
-}
-
-func (commCtr *CommandCenter) Reconnect(data string) {
-	device := new(Device)
-	json.Unmarshal([]byte(data), &device)
-	log.Printf("Device %s reconnect...", device.MacAddress)
-	commCtr.conn.WriteJSON(model.Message{Action: "Reconnect", Data: "Accepted"})
 }
 
 func (commCtr *CommandCenter) Error(data string) {

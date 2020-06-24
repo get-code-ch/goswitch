@@ -59,19 +59,12 @@ func NewCli(conf *config.ConfCli) *Cli {
 	*/
 	// Send Register message
 	//msg := model.Message{Action: "Register", Data: string(d), Client: cli.me, Server: cli.srv}
-	SendMessage(cli, model.Register, cli.me)
+	SendMessage(cli, model.Register, cli.me, nil)
 
 	return cli
 }
 
-func (cli *Cli) Send(action model.Action, data interface{}) {
-	/*
-			d, err := json.Marshal(cli.me)
-		if err != nil {
-			log.Printf("Error marshaling device: %v", err)
-		}
-	*/
-
+func (cli *Cli) Send(action model.Action, data interface{}, conn *websocket.Conn) {
 	cli.conn.WriteJSON(model.Message{Action: action, Data: data, Client: cli.me, Server: cli.srv})
 }
 
@@ -89,7 +82,7 @@ func (cli *Cli) Listen(channel chan int) {
 					cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
 					if err == nil {
 						log.Printf("Device reconnected\n")
-						SendMessage(cli, model.Reconnect, cli.me)
+						SendMessage(cli, model.Reconnect, cli.me, nil)
 						break
 					}
 				}
@@ -109,7 +102,7 @@ func (cli *Cli) Listen(channel chan int) {
 }
 
 func (cli *Cli) Echo(msg string) {
-	SendMessage(cli, model.Echo, msg)
+	SendMessage(cli, model.Echo, msg, nil)
 }
 
 func (cli *Cli) Invoke(function model.Action, data interface{}) {
@@ -117,7 +110,7 @@ func (cli *Cli) Invoke(function model.Action, data interface{}) {
 	inputs[0] = reflect.ValueOf(data)
 	fnc := reflect.ValueOf(cli).MethodByName(string(function))
 	if !fnc.IsValid() {
-		SendMessage(cli, model.Error, fmt.Sprintf("Action %s not found", function))
+		SendMessage(cli, model.Error, fmt.Sprintf("Action %s not found", function), nil)
 	} else {
 		fnc.Call(inputs)
 	}
