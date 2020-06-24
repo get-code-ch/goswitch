@@ -17,6 +17,7 @@ type CommandCenter struct {
 	conn     *websocket.Conn
 	devices  map[string]*websocket.Conn
 	clients  map[string]*websocket.Conn
+	me       model.Node
 	ssl      bool
 	cert     config.ConfCertificate
 	server   string
@@ -34,6 +35,8 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.cert.SslKey = conf.Cert.SslKey
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
+
+	commCtr.me = model.Node{Id: "CommCtr", Node: model.SERVER}
 
 	return commCtr
 }
@@ -69,11 +72,13 @@ func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// REGISTER client (DEVICE, CLI or GUI)
-	SendMessage(commCtr, commCtr.conn, model.REGISTER, nil)
-
+	// Ask for client registration (DEVICE, CLI or GUI)
+	SendMessage(commCtr, commCtr.conn, model.REGISTER, commCtr.me)
 	// Wait for message
 	msg := new(model.Message)
+	err = commCtr.conn.ReadJSON(&msg)
+	commCtr.Invoke(commCtr.conn, msg.Action, msg.Data, msg.Client)
+
 	for {
 		err := commCtr.conn.ReadJSON(&msg)
 		if err != nil {
@@ -110,14 +115,32 @@ func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action
 
 func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
-	log.Printf("Id -> %s\n", d["Id"].(string))
-	SendMessage(commCtr, conn, model.ACCEPT, nil)
+	node := new(model.Node)
+	node.Id = d["Id"].(string)
+	node.Node = model.NodeType(d["Node"].(string))
+
+	switch node.Node {
+	case model.BROWSER, model.CLI:
+		commCtr.clients[node.Id] = conn
+	case model.DEVICE:
+		commCtr.devices[node.Id] = conn
+	}
+	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 }
 
 func (commCtr *CommandCenter) Reconnect(conn *websocket.Conn, data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
-	log.Printf("Id -> %s\n", d["Id"].(string))
-	conn.WriteJSON(model.Message{Action: "Accept", Data: fmt.Sprintf("DEVICE %s Accepted", client.Id)})
+	node := new(model.Node)
+	node.Id = d["Id"].(string)
+	node.Node = model.NodeType(d["Node"].(string))
+
+	switch node.Node {
+	case model.BROWSER, model.CLI:
+		commCtr.clients[node.Id] = conn
+	case model.DEVICE:
+		commCtr.devices[node.Id] = conn
+	}
+	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 }
 
 func (commCtr *CommandCenter) Error(conn *websocket.Conn, data string) {

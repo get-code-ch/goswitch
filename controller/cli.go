@@ -51,16 +51,6 @@ func NewCli(conf *config.ConfCli) *Cli {
 	cli.me = model.Node{Node: model.CLI, Id: cli.Name}
 	cli.srv = model.Node{Node: model.SERVER, Id: "CommCtr"}
 
-	/*
-		d, err := json.Marshal(cli.me)
-		if err != nil {
-			log.Printf("ERROR marshaling cli: %v", err)
-		}
-	*/
-	// Send REGISTER message
-	//msg := model.Message{Action: "REGISTER", Data: string(d), Client: cli.me, SERVER: cli.srv}
-	SendMessage(cli, nil, model.REGISTER, cli.me)
-
 	return cli
 }
 
@@ -114,6 +104,11 @@ func (cli *Cli) Invoke(function model.Action, data interface{}) {
 	} else {
 		fnc.Call(inputs)
 	}
+}
+
+func (cli *Cli) Register(data interface{}) {
+	//d := data.(map[string]interface{})
+	SendMessage(cli, nil, model.REGISTER, cli.me)
 }
 
 func (cli *Cli) Accept(data string) {
