@@ -1,2 +1,4 @@
 /.idea/
 *.exe
+/services/device/release/goswitch/
+/release/

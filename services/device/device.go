@@ -4,16 +4,20 @@ import (
 	"goswitch/config"
 	"goswitch/controller"
 	"log"
+	"os"
 )
 
 func main() {
-
 	receiver := make(chan int)
 
-	conf := config.NewDeviceConfig("")
+	configFile := ""
+	if len(os.Args) >= 2 {
+		configFile = os.Args[1]
+	}
+
+	conf := config.NewDeviceConfig(configFile)
 	log.Printf("Config loaded... %v", conf.Controller)
-	c := controller.NewDevice(conf)
-	go c.Listen(receiver)
-	c.Send("Message")
-	<- receiver
+	device := controller.NewDevice(conf)
+	go device.Listen(receiver)
+	<-receiver
 }

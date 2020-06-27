@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -17,12 +16,14 @@ import (
 )
 
 type Device struct {
-	active     bool
-	upgrader   websocket.Upgrader
-	conn       *websocket.Conn
-	url        url.URL
-	ssl        bool
-	MacAddress string `json:"mac_address"`
+	me       model.Node
+	srv      model.Node
+	active   bool
+	upgrader websocket.Upgrader
+	conn     *websocket.Conn
+	url      url.URL
+	ssl      bool
+	Name     string
 }
 
 func NewDevice(conf *config.ConfDevice) *Device {
@@ -45,27 +46,28 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.setMacAddress(conf.Interface.Name)
 
-	d, err := json.Marshal(model.Node{Node: model.DEVICE, Id: device.MacAddress})
-	if err != nil {
-		log.Printf("ERROR marshaling device: %v", err)
-	}
-	msg := model.Message{Action: "REGISTER", Data: string(d)}
-	device.conn.WriteJSON(msg)
+	device.me = model.Node{Type: model.DEVICE, Id: device.Name}
+	device.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
 
 	return device
 }
 
 func (device *Device) setMacAddress(name string) {
 	interfaces, err := net.Interfaces()
-	device.MacAddress = ""
+	device.Name = RandomString(8)
+	//device.Name = ""
 	if err == nil {
 		for _, i := range interfaces {
 			if strings.ToLower(i.Name) == strings.ToLower(name) {
-				device.MacAddress = i.HardwareAddr.String()
+				device.Name = i.HardwareAddr.String()
 				break
 			}
 		}
 	}
+}
+
+func (device *Device) Send(conn *websocket.Conn, action model.Action, data interface{}) {
+	device.conn.WriteJSON(model.Message{Action: action, Data: data, Client: device.me, Server: device.srv})
 }
 
 func (device *Device) Listen(channel chan int) {
@@ -75,18 +77,14 @@ func (device *Device) Listen(channel chan int) {
 		err := device.conn.ReadJSON(&msg)
 		if err != nil {
 			if err.(*net.OpError).Err.(*os.SyscallError).Error() == "wsarecv: An existing connection was forcibly closed by the remote host." {
-				log.Printf("Node closed by peer %v", err)
+				log.Printf("Type closed by peer %v", err)
 				device.conn = nil
 				for {
 					time.Sleep(5 * time.Second)
 					device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
 					if err == nil {
 						log.Printf("DEVICE reconnected\n")
-						d, err := json.Marshal(model.Node{Node: model.DEVICE, Id: device.MacAddress})
-						if err != nil {
-							log.Printf("ERROR marshaling device: %v", err)
-						}
-						device.conn.WriteJSON(model.Message{Action: "RECONNECT", Data: string(d)})
+						SendMessage(device, nil, model.RECONNECT, device.me)
 						break
 					}
 				}
@@ -97,16 +95,9 @@ func (device *Device) Listen(channel chan int) {
 				return
 			}
 		}
-
-		log.Printf("Message received from %s (action: %s, msg:%s...)", device.conn.RemoteAddr(), msg.Action, msg.Data)
 		device.Invoke(msg.Action, msg.Data)
 
 	}
-
-}
-
-func (device *Device) Send(msg string) {
-	device.conn.WriteJSON(model.Message{Action: "REGISTER", Data: msg})
 }
 
 func (device *Device) Invoke(function model.Action, data interface{}) {
@@ -120,10 +111,24 @@ func (device *Device) Invoke(function model.Action, data interface{}) {
 	}
 }
 
-func (device *Device) Accept(data string) {
-	log.Printf("Accept function, data: %s", data)
+func (device *Device) Register(data interface{}) {
+	SendMessage(device, nil, model.REGISTER, device.me)
 }
 
-func (device *Device) Reconnect(data string) {
-	log.Printf("RECONNECT function, data: %s", data)
+func (device *Device) Acknowledge(data interface{}) {
+	log.Printf("Acknowledge received: %s\n", data.(string))
+}
+
+func (device *Device) Accept(data interface{}) {
+	log.Printf("Connection accepted: %s\n", data.(string))
+}
+
+func (device *Device) GetInfo(data interface{}) {
+	client := model.Node{}.SetFromInterface(data.(map[string]interface{}))
+
+	hostName, _ := os.Hostname()
+	info := model.Message{Action: model.SENDINFO, Data: fmt.Sprintf("Device Hostname is -> %s", hostName), Client: client}
+
+	//msg := model.Message{Action: nil, Client: itf.Client, Data: info}
+	SendMessage(device, nil, model.RELAY, info)
 }

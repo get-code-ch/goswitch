@@ -1,5 +1,7 @@
 package model
 
+import "strings"
+
 type NodeType string
 
 const (
@@ -10,6 +12,20 @@ const (
 )
 
 type Node struct {
-	Node NodeType
+	Type NodeType
 	Id   string
+}
+
+func (node Node) SetFromInterface(m map[string]interface{}) Node {
+
+	n := Node{}
+	for key, value := range m {
+		switch strings.ToLower(key) {
+		case "id":
+			n.Id = value.(string)
+		case "type":
+			n.Type = NodeType(value.(string))
+		}
+	}
+	return n
 }

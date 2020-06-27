@@ -36,7 +36,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
 
-	commCtr.me = model.Node{Id: "CommCtr", Node: model.SERVER}
+	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
 
 	return commCtr
 }
@@ -86,7 +86,7 @@ func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		switch msg.Client.Node {
+		switch msg.Client.Type {
 		case model.BROWSER, model.CLI:
 			commCtr.Invoke(commCtr.clients[msg.Client.Id], msg.Action, msg.Data, msg.Client)
 		case model.DEVICE:
@@ -117,9 +117,9 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 	d := data.(map[string]interface{})
 	node := new(model.Node)
 	node.Id = d["Id"].(string)
-	node.Node = model.NodeType(d["Node"].(string))
+	node.Type = model.NodeType(d["Type"].(string))
 
-	switch node.Node {
+	switch node.Type {
 	case model.BROWSER, model.CLI:
 		commCtr.clients[node.Id] = conn
 	case model.DEVICE:
@@ -132,9 +132,9 @@ func (commCtr *CommandCenter) Reconnect(conn *websocket.Conn, data interface{}, 
 	d := data.(map[string]interface{})
 	node := new(model.Node)
 	node.Id = d["Id"].(string)
-	node.Node = model.NodeType(d["Node"].(string))
+	node.Type = model.NodeType(d["Type"].(string))
 
-	switch node.Node {
+	switch node.Type {
 	case model.BROWSER, model.CLI:
 		commCtr.clients[node.Id] = conn
 	case model.DEVICE:
@@ -143,16 +143,41 @@ func (commCtr *CommandCenter) Reconnect(conn *websocket.Conn, data interface{}, 
 	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 }
 
-func (commCtr *CommandCenter) Error(conn *websocket.Conn, data string) {
-	log.Printf("ERROR function, data: %s", data)
+func (commCtr *CommandCenter) Error(conn *websocket.Conn, data interface{}) {
+	log.Printf("ERROR function, data: %v", data)
 }
 
-func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data string, client model.Node) {
+func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data interface{}, client model.Node) {
 
-	switch client.Node {
-	case model.CLI, model.BROWSER:
-		conn.WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
-	case model.DEVICE:
-		conn.WriteJSON(model.Message{Action: "Acknowledge", Data: fmt.Sprintf(`{"Message":"%s"}`, data)})
+	log.Printf("Echo request: %v", data)
+	SendMessage(commCtr, conn, model.ACKNOWLEDGE, data.(string))
+
+}
+
+func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, client model.Node) {
+	var deviceLst []string
+
+	for key, _ := range commCtr.devices {
+		deviceLst = append(deviceLst, key)
 	}
+	if deviceLst == nil {
+		deviceLst = make([]string, 1)
+	}
+	SendMessage(commCtr, conn, model.LIST, deviceLst)
+
+}
+
+func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
+	var destConn *websocket.Conn
+
+	msg := model.Message{}.SetFromInterface(data.(map[string]interface{}))
+
+	switch msg.Client.Type {
+	case model.BROWSER, model.CLI:
+		destConn = commCtr.clients[msg.Client.Id]
+	case model.DEVICE:
+		destConn = commCtr.devices[msg.Client.Id]
+	}
+	SendMessage(commCtr, destConn, msg.Action, msg.Data)
+
 }

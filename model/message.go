@@ -1,5 +1,10 @@
 package model
 
+import (
+	"fmt"
+	"strings"
+)
+
 type Action string
 
 const (
@@ -9,6 +14,10 @@ const (
 	ERROR       Action = "Error"
 	ACKNOWLEDGE Action = "Acknowledge"
 	ACCEPT      Action = "Accept"
+	RELAY       Action = "Relay"
+	LIST        Action = "List"
+	GETINFO     Action = "GetInfo"
+	SENDINFO    Action = "ReceiveInfo"
 )
 
 type Message struct {
@@ -20,4 +29,27 @@ type Message struct {
 
 func (a Action) String() string {
 	return string(a)
+}
+
+func (msg Message) String() string {
+	return fmt.Sprintf("{\nClient: {Type: %s, Id: %s}\n}", msg.Client.Id, msg.Client.Type)
+}
+
+func (msg Message) SetFromInterface(m map[string]interface{}) Message {
+
+	ms := Message{}
+
+	for key, value := range m {
+		switch strings.ToLower(key) {
+		case "client":
+			ms.Client = Node{}.SetFromInterface(value.(map[string]interface{}))
+		case "action":
+			ms.Action = Action(value.(string))
+		case "data":
+			ms.Data = value
+		case "server":
+			ms.Server = Node{}.SetFromInterface(value.(map[string]interface{}))
+		}
+	}
+	return ms
 }
