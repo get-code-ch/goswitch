@@ -37,19 +37,19 @@ func (msg Message) String() string {
 
 func (msg Message) SetFromInterface(m map[string]interface{}) Message {
 
-	ms := Message{}
+	msgStruct := Message{}
 
 	for key, value := range m {
 		switch strings.ToLower(key) {
 		case "client":
-			ms.Client = Node{}.SetFromInterface(value.(map[string]interface{}))
+			msgStruct.Client = Node{}.SetFromInterface(value.(map[string]interface{}))
 		case "action":
-			ms.Action = Action(value.(string))
+			msgStruct.Action = Action(value.(string))
 		case "data":
-			ms.Data = value
+			msgStruct.Data = value
 		case "server":
-			ms.Server = Node{}.SetFromInterface(value.(map[string]interface{}))
+			msgStruct.Server = Node{}.SetFromInterface(value.(map[string]interface{}))
 		}
 	}
-	return ms
+	return msgStruct
 }

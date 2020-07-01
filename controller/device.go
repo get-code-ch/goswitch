@@ -11,19 +11,20 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"time"
 )
 
 type Device struct {
-	me       model.Node
-	srv      model.Node
-	active   bool
-	upgrader websocket.Upgrader
-	conn     *websocket.Conn
-	url      url.URL
-	ssl      bool
-	Name     string
+	me         model.Node
+	srv        model.Node
+	registered bool
+	upgrader   websocket.Upgrader
+	conn       *websocket.Conn
+	url        url.URL
+	ssl        bool
+	Name       string
 }
 
 func NewDevice(conf *config.ConfDevice) *Device {
@@ -48,14 +49,21 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.me = model.Node{Type: model.DEVICE, Id: device.Name}
 	device.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
+	device.registered = false
 
 	return device
 }
 
 func (device *Device) setMacAddress(name string) {
+	device.Name = ""
+
+	// Getting list of network interfaces
 	interfaces, err := net.Interfaces()
-	device.Name = RandomString(8)
-	//device.Name = ""
+	sort.Slice(interfaces, func(i, j int) bool {
+		return interfaces[i].HardwareAddr.String() < interfaces[j].HardwareAddr.String()
+	})
+
+	// Try to find interface matching with name
 	if err == nil {
 		for _, i := range interfaces {
 			if strings.ToLower(i.Name) == strings.ToLower(name) {
@@ -63,6 +71,23 @@ func (device *Device) setMacAddress(name string) {
 				break
 			}
 		}
+	}
+
+	// If no device match with name we get mac address of first active interface (except loopback)
+	if device.Name == "" && err == nil {
+		for _, i := range interfaces {
+			if i.Flags&net.FlagUp == net.FlagUp &&
+				i.Flags&net.FlagBroadcast == net.FlagBroadcast &&
+				i.Flags&net.FlagLoopback != net.FlagLoopback {
+				device.Name = i.HardwareAddr.String()
+				break
+			}
+		}
+	}
+
+	// If no device was found setting mac address with a random string
+	if device.Name == "" {
+		device.Name = RandomString(8)
 	}
 }
 
@@ -83,8 +108,7 @@ func (device *Device) Listen(channel chan int) {
 					time.Sleep(5 * time.Second)
 					device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
 					if err == nil {
-						log.Printf("DEVICE reconnected\n")
-						SendMessage(device, nil, model.RECONNECT, device.me)
+						//SendMessage(device, nil, model.RECONNECT, device.me)
 						break
 					}
 				}
@@ -112,7 +136,14 @@ func (device *Device) Invoke(function model.Action, data interface{}) {
 }
 
 func (device *Device) Register(data interface{}) {
-	SendMessage(device, nil, model.REGISTER, device.me)
+	if !device.registered {
+		SendMessage(device, nil, model.REGISTER, device.me)
+	} else {
+		SendMessage(device, nil, model.RECONNECT, device.me)
+	}
+}
+func (device *Device) Error(data interface{}) {
+	log.Printf("Error : %s\n> ", data.(string))
 }
 
 func (device *Device) Acknowledge(data interface{}) {
@@ -129,6 +160,5 @@ func (device *Device) GetInfo(data interface{}) {
 	hostName, _ := os.Hostname()
 	info := model.Message{Action: model.SENDINFO, Data: fmt.Sprintf("Device Hostname is -> %s", hostName), Client: client}
 
-	//msg := model.Message{Action: nil, Client: itf.Client, Data: info}
 	SendMessage(device, nil, model.RELAY, info)
 }

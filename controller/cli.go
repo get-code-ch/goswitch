@@ -15,14 +15,14 @@ import (
 )
 
 type Cli struct {
-	me       model.Node
-	srv      model.Node
-	active   bool
-	upgrader websocket.Upgrader
-	conn     *websocket.Conn
-	url      url.URL
-	ssl      bool
-	Name     string
+	me         model.Node
+	srv        model.Node
+	registered bool
+	upgrader   websocket.Upgrader
+	conn       *websocket.Conn
+	url        url.URL
+	ssl        bool
+	Name       string
 }
 
 func NewCli(conf *config.ConfCli) *Cli {
@@ -51,6 +51,7 @@ func NewCli(conf *config.ConfCli) *Cli {
 
 	cli.me = model.Node{Type: model.CLI, Id: cli.Name}
 	cli.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
+	cli.registered = false
 
 	return cli
 }
@@ -72,8 +73,7 @@ func (cli *Cli) Listen(channel chan int) {
 					time.Sleep(5 * time.Second)
 					cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
 					if err == nil {
-						log.Printf("CLI reconnected\n")
-						SendMessage(cli, nil, model.RECONNECT, cli.me)
+						//SendMessage(cli, nil, model.RECONNECT, cli.me)
 						break
 					}
 				}
@@ -101,7 +101,15 @@ func (cli *Cli) Invoke(function model.Action, data interface{}) {
 }
 
 func (cli *Cli) Register(data interface{}) {
-	SendMessage(cli, nil, model.REGISTER, cli.me)
+	if !cli.registered {
+		SendMessage(cli, nil, model.REGISTER, cli.me)
+	} else {
+		SendMessage(cli, nil, model.RECONNECT, cli.me)
+	}
+}
+
+func (cli *Cli) Error(data interface{}) {
+	log.Printf("Error : %s\n> ", data.(string))
 }
 
 func (cli *Cli) Acknowledge(data interface{}) {

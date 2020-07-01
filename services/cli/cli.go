@@ -50,7 +50,7 @@ func main() {
 			device := getInfoRE.FindStringSubmatch(input)[2]
 			data := model.Message{Action: model.GETINFO, Client: model.Node{Type: model.DEVICE, Id: device}, Data: model.Node{Type: model.CLI, Id: cli.Name}}
 			controller.SendMessage(cli, nil, model.RELAY, data)
-
+			continue
 		}
 
 		msg := input[:len(input)-1]

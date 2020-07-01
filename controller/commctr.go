@@ -46,7 +46,7 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 	flag.Parse()
 
 	commCtr.upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
-	http.HandleFunc("/ws", commCtr.wsListener)
+	http.HandleFunc("/ws", commCtr.serveWs)
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "<h1>goswitch server controller</h1>")
 	})
@@ -62,27 +62,28 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 	close(channel)
 }
 
-func (commCtr *CommandCenter) wsListener(w http.ResponseWriter, r *http.Request) {
+func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 	var err error
+	var conn *websocket.Conn
 
 	// Init connection
-	commCtr.conn, err = commCtr.upgrader.Upgrade(w, r, nil)
+	conn, err = commCtr.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("ERROR handle wsListener --> %v", err)
+		log.Printf("ERROR handle serveWs --> %v", err)
 		return
 	}
 
 	// Ask for client registration (DEVICE, CLI or GUI)
-	SendMessage(commCtr, commCtr.conn, model.REGISTER, commCtr.me)
+	SendMessage(commCtr, conn, model.REGISTER, commCtr.me)
 	// Wait for message
 	msg := new(model.Message)
-	err = commCtr.conn.ReadJSON(&msg)
-	commCtr.Invoke(commCtr.conn, msg.Action, msg.Data, msg.Client)
+	err = conn.ReadJSON(&msg)
+	commCtr.Invoke(conn, msg.Action, msg.Data, msg.Client)
 
 	for {
-		err := commCtr.conn.ReadJSON(&msg)
+		err := conn.ReadJSON(&msg)
 		if err != nil {
-			log.Printf("ERROR reading wsListener --> %v", err)
+			log.Printf("ERROR reading serveWs --> %v", err)
 			return
 		}
 
@@ -177,7 +178,14 @@ func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, clie
 		destConn = commCtr.clients[msg.Client.Id]
 	case model.DEVICE:
 		destConn = commCtr.devices[msg.Client.Id]
+	default:
+		destConn = nil
 	}
-	SendMessage(commCtr, destConn, msg.Action, msg.Data)
+
+	if destConn != nil {
+		SendMessage(commCtr, destConn, msg.Action, msg.Data)
+	} else {
+		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
+	}
 
 }
