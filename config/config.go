@@ -1,12 +1,17 @@
 package config
 
+import (
+	"github.com/get-code-ch/mcp23008"
+)
+
 const defaultDeviceConfigFile = "./config/device.json"
 const defaultCliConfigFile = "./config/cli.json"
 const defaultControllerConfigFile = "./config/commctr.json"
 
 type ConfDevice struct {
-	Controller ConfCommCtr   `json:"controller"`
-	Interface  ConfInterface `json:"interface"`
+	Controller ConfCommCtr         `json:"controller"`
+	Interface  ConfInterface       `json:"interface"`
+	Modules    []mcp23008.Mcp23008 `json:"modules"`
 }
 
 type ConfCli struct {

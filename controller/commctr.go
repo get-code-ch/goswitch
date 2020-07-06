@@ -108,7 +108,8 @@ func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action
 
 	fnc := reflect.ValueOf(commCtr).MethodByName(string(function))
 	if !fnc.IsValid() {
-		commCtr.conn.WriteJSON(model.Message{Action: "ERROR", Data: fmt.Sprintf("Action %s not found", function)})
+		//commCtr.conn.WriteJSON(model.Message{Action: "ERROR", Data: fmt.Sprintf("Action %s not found", function)})
+		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Action %s not found", function))
 	} else {
 		fnc.Call(inputs)
 	}
@@ -171,7 +172,7 @@ func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, clien
 func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
 	var destConn *websocket.Conn
 
-	msg := model.Message{}.SetFromInterface(data.(map[string]interface{}))
+	msg := model.Message{}.SetFromInterface(data)
 
 	switch msg.Client.Type {
 	case model.BROWSER, model.CLI:

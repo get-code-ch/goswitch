@@ -23,6 +23,7 @@ type Cli struct {
 	url        url.URL
 	ssl        bool
 	Name       string
+	Devices    map[string]DeviceInfo
 }
 
 func NewCli(conf *config.ConfCli) *Cli {
@@ -52,6 +53,8 @@ func NewCli(conf *config.ConfCli) *Cli {
 	cli.me = model.Node{Type: model.CLI, Id: cli.Name}
 	cli.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
 	cli.registered = false
+
+	cli.Devices = make(map[string]DeviceInfo)
 
 	return cli
 }
@@ -121,7 +124,20 @@ func (cli *Cli) Accept(data interface{}) {
 }
 
 func (cli *Cli) ReceiveInfo(data interface{}) {
-	fmt.Printf("Device infos: %s\n> ", data.(string))
+
+	deviceInfo := DeviceInfo{}.SetFromInterface(data)
+
+	// Insert or update devices info
+	cli.Devices[deviceInfo.Device.me.Id] = deviceInfo
+
+	for _, module := range deviceInfo.Device.Modules {
+		fmt.Printf("Name -> %s ", module.Name)
+		for idx, sw := range module.Gpios {
+			fmt.Printf(", switch %d - state %d", idx, sw)
+		}
+		fmt.Printf("\n")
+	}
+	fmt.Printf("\n >")
 }
 
 func (cli *Cli) Echo(data interface{}) {

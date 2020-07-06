@@ -1,6 +1,6 @@
 package model
 
-import "strings"
+import "encoding/json"
 
 type NodeType string
 
@@ -16,16 +16,11 @@ type Node struct {
 	Id   string
 }
 
-func (node Node) SetFromInterface(m map[string]interface{}) Node {
+func (node Node) SetFromInterface(data interface{}) Node {
 
-	n := Node{}
-	for key, value := range m {
-		switch strings.ToLower(key) {
-		case "id":
-			n.Id = value.(string)
-		case "type":
-			n.Type = NodeType(value.(string))
-		}
-	}
-	return n
+	marshal, _ := json.Marshal(data)
+	converted := Node{}
+	json.Unmarshal(marshal, &converted)
+	return converted
+
 }

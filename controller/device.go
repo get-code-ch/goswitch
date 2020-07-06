@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/get-code-ch/mcp23008"
 	"github.com/gorilla/websocket"
 	"goswitch/config"
 	"goswitch/model"
@@ -25,6 +27,27 @@ type Device struct {
 	url        url.URL
 	ssl        bool
 	Name       string
+	I2cMode    model.I2cMode
+	Modules    []mcp23008.Mcp23008
+}
+
+func (device Device) SetFromInterface(data interface{}) Device {
+	marshal, _ := json.Marshal(data)
+	converted := Device{}
+	json.Unmarshal(marshal, &converted)
+	return converted
+}
+
+type DeviceInfo struct {
+	Hostname string `json:"hostname"`
+	Device   Device `json:"device"`
+}
+
+func (deviceInfo DeviceInfo) SetFromInterface(data interface{}) DeviceInfo {
+	marshal, _ := json.Marshal(data)
+	converted := DeviceInfo{}
+	json.Unmarshal(marshal, &converted)
+	return converted
 }
 
 func NewDevice(conf *config.ConfDevice) *Device {
@@ -155,10 +178,13 @@ func (device *Device) Accept(data interface{}) {
 }
 
 func (device *Device) GetInfo(data interface{}) {
-	client := model.Node{}.SetFromInterface(data.(map[string]interface{}))
+	client := model.Node{}.SetFromInterface(data)
 
 	hostName, _ := os.Hostname()
-	info := model.Message{Action: model.SENDINFO, Data: fmt.Sprintf("Device Hostname is -> %s", hostName), Client: client}
+
+	deviceInfo := DeviceInfo{Hostname: hostName, Device: *device}
+
+	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: client}
 
 	SendMessage(device, nil, model.RELAY, info)
 }

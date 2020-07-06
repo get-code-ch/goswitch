@@ -7,5 +7,20 @@
   },
   "interface": {
     "name": "Ethernet"
-  }
+  },
+  "modules": [
+    {
+      "name": "Relay1",
+      "address": 39,
+      "count": 2,
+      "description": "Expansion relay module 1 0x27"
+    },
+    {
+      "name": "Relay2",
+      "address": 32,
+      "count": 2,
+      "description": "Expansion relay module 2 0x20"
+    }
+  ]
+
 }

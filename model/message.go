@@ -1,8 +1,8 @@
 package model
 
 import (
+	"encoding/json"
 	"fmt"
-	"strings"
 )
 
 type Action string
@@ -18,6 +18,9 @@ const (
 	LIST        Action = "List"
 	GETINFO     Action = "GetInfo"
 	SENDINFO    Action = "ReceiveInfo"
+	FAKE        Action = "Fake"
+	SETGPIO     Action = "SetGPIO"
+	GETGPIO     Action = "GetGPIO"
 )
 
 type Message struct {
@@ -35,21 +38,10 @@ func (msg Message) String() string {
 	return fmt.Sprintf("{\nClient: {Type: %s, Id: %s}\n}", msg.Client.Id, msg.Client.Type)
 }
 
-func (msg Message) SetFromInterface(m map[string]interface{}) Message {
+func (msg Message) SetFromInterface(data interface{}) Message {
 
-	msgStruct := Message{}
-
-	for key, value := range m {
-		switch strings.ToLower(key) {
-		case "client":
-			msgStruct.Client = Node{}.SetFromInterface(value.(map[string]interface{}))
-		case "action":
-			msgStruct.Action = Action(value.(string))
-		case "data":
-			msgStruct.Data = value
-		case "server":
-			msgStruct.Server = Node{}.SetFromInterface(value.(map[string]interface{}))
-		}
-	}
-	return msgStruct
+	marshal, _ := json.Marshal(data)
+	converted := Message{}
+	json.Unmarshal(marshal, &converted)
+	return converted
 }

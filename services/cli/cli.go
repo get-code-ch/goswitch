@@ -14,8 +14,11 @@ import (
 func main() {
 
 	endRE := regexp.MustCompile(`^\.{3}[\r\n]+$`)
-	listRE := regexp.MustCompile(`(?mi)^(List)(?:\s(.*))?[\r\n]+$`)
-	getInfoRE := regexp.MustCompile(`(?mi)^(Info)\s(.*)?[\r\n]+$`)
+	listRE := regexp.MustCompile(`(?mi)^(list)\s?[\r\n]+$`)
+	getInfoRE := regexp.MustCompile(`(?mi)^(info)\s([\S]+)\s?[\r\n]+$`)
+	setGpioRE := regexp.MustCompile(`(?mi)^(set)\s(?P<id>[\S]+)\s(?P<module>[\S]+)\s(?P<sw>[\S]+)\s(?P<state>[0|1])\s?[\r\n]+$`)
+	fakeRE := regexp.MustCompile(`^(fake)[\r\n]+$`)
+	//getXxxRE := regexp.MustCompile(`(?mi)^(xxx)\s([\S]+)\s?[\r\n]+$`)
 
 	configFile := ""
 	if len(os.Args) >= 2 {
@@ -41,8 +44,8 @@ func main() {
 		}
 
 		if listRE.MatchString(input) {
-			msg := listRE.FindStringSubmatch(input)[2]
-			controller.SendMessage(cli, nil, model.LIST, msg)
+			//msg := listRE.FindStringSubmatch(input)[2]
+			controller.SendMessage(cli, nil, model.LIST, "")
 			continue
 		}
 
@@ -52,6 +55,34 @@ func main() {
 			controller.SendMessage(cli, nil, model.RELAY, data)
 			continue
 		}
+
+		if setGpioRE.MatchString(input) {
+			command := setGpioRE.FindStringSubmatch(input)
+			arguments := make(map[string]interface{})
+
+			for idx, name := range setGpioRE.SubexpNames() {
+				if idx != 0 && name != "" {
+					arguments[name] = command[idx]
+				}
+			}
+			data := model.Message{Action: model.SETGPIO, Client: model.Node{Type: model.DEVICE, Id: arguments["id"].(string)}, Data: arguments}
+			controller.SendMessage(cli, nil, model.RELAY, data)
+			continue
+		}
+
+		if fakeRE.MatchString(input) {
+			controller.SendMessage(cli, nil, model.FAKE, "--Fake datas--")
+			continue
+		}
+
+		/*
+			if getXxxRE.MatchString(input) {
+				device := getXxxRE.FindStringSubmatch(input)[2]
+				data := model.Message{Action: model.xxx, Client: model.Node{Type: model.DEVICE, Id: device}, Data: model.Node{Type: model.CLI, Id: cli.Name}}
+				controller.SendMessage(cli, nil, model.RELAY, data)
+				continue
+			}
+		*/
 
 		msg := input[:len(input)-1]
 		controller.SendMessage(cli, nil, model.ECHO, msg)

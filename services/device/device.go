@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/get-code-ch/mcp23008"
 	"goswitch/config"
 	"goswitch/controller"
+	"goswitch/model"
 	"log"
 	"os"
 )
@@ -18,6 +20,19 @@ func main() {
 	conf := config.NewDeviceConfig(configFile)
 	log.Printf("Config loaded... %v", conf.Controller)
 	device := controller.NewDevice(conf)
+
+	device.I2cMode = model.REAL
+	device.Modules = make([]mcp23008.Mcp23008, len(conf.Modules))
+	copy(device.Modules, conf.Modules)
+	for idx := range device.Modules {
+
+		err := mcp23008.Init("/dev/i2c-0", device.Modules[idx].Address, &device.Modules[idx])
+		if err != nil {
+			log.Printf("Error i2c module init -> %s", err)
+			device.I2cMode = model.SIMULATION
+		}
+	}
+
 	go device.Listen(receiver)
 	<-receiver
 }
