@@ -47,9 +47,13 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 
 	commCtr.upgrader = websocket.Upgrader{ReadBufferSize: 1024, WriteBufferSize: 1024}
 	http.HandleFunc("/ws", commCtr.serveWs)
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+
+	http.HandleFunc("/title", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "<h1>goswitch server controller</h1>")
 	})
+
+	fs := http.FileServer(http.Dir("./vue"))
+	http.Handle("/", fs)
 
 	if commCtr.ssl {
 		err := http.ListenAndServeTLS(*addr, commCtr.cert.SslCert, commCtr.cert.SslKey, nil)

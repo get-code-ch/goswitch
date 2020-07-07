@@ -137,7 +137,7 @@ func (cli *Cli) ReceiveInfo(data interface{}) {
 		}
 		fmt.Printf("\n")
 	}
-	fmt.Printf("\n >")
+	fmt.Printf("\n> ")
 }
 
 func (cli *Cli) Echo(data interface{}) {

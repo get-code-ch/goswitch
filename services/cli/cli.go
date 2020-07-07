@@ -16,7 +16,7 @@ func main() {
 	endRE := regexp.MustCompile(`^\.{3}[\r\n]+$`)
 	listRE := regexp.MustCompile(`(?mi)^(list)\s?[\r\n]+$`)
 	getInfoRE := regexp.MustCompile(`(?mi)^(info)\s([\S]+)\s?[\r\n]+$`)
-	setGpioRE := regexp.MustCompile(`(?mi)^(set)\s(?P<id>[\S]+)\s(?P<module>[\S]+)\s(?P<sw>[\S]+)\s(?P<state>[0|1])\s?[\r\n]+$`)
+	setGpioRE := regexp.MustCompile(`(?mi)^(?P<command>On|Off)\s(?P<id>[\S]+)\s(?P<module>[\S]+)\s(?P<sw>[\S]+)\s?[\r\n]+$`)
 	fakeRE := regexp.MustCompile(`^(fake)[\r\n]+$`)
 	//getXxxRE := regexp.MustCompile(`(?mi)^(xxx)\s([\S]+)\s?[\r\n]+$`)
 
@@ -67,11 +67,12 @@ func main() {
 			}
 			data := model.Message{Action: model.SETGPIO, Client: model.Node{Type: model.DEVICE, Id: arguments["id"].(string)}, Data: arguments}
 			controller.SendMessage(cli, nil, model.RELAY, data)
+			fmt.Printf("\n> ")
 			continue
 		}
 
 		if fakeRE.MatchString(input) {
-			controller.SendMessage(cli, nil, model.FAKE, "--Fake datas--")
+			controller.SendMessage(cli, nil, model.FAKE, "--Fake data--")
 			continue
 		}
 
