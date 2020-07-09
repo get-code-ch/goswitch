@@ -52,7 +52,7 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 		fmt.Fprintf(w, "<h1>goswitch server controller</h1>")
 	})
 
-	fs := http.FileServer(http.Dir("./vue"))
+	fs := http.FileServer(http.Dir("./gsvue/dist/"))
 	http.Handle("/", fs)
 
 	if commCtr.ssl {
@@ -71,7 +71,15 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 	var conn *websocket.Conn
 
 	// Init connection
-	conn, err = commCtr.upgrader.Upgrade(w, r, nil)
+
+	header := http.Header{}
+
+	// For development we allow CORS
+	commCtr.upgrader.CheckOrigin = func(r *http.Request) bool {
+		return true
+	}
+
+	conn, err = commCtr.upgrader.Upgrade(w, r, header)
 	if err != nil {
 		log.Printf("ERROR handle serveWs --> %v", err)
 		return
