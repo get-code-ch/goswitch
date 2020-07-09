@@ -1,20 +1,24 @@
 import {reactive, toRefs} from "vue";
 
 export default function useController() {
+
+    let connection;
+    let client;
+
     const controller = reactive({
         msg:"",
-        status:"Hello"
+        status:"Hello",
+        //deviceId:""
     })
 
     function newConnection(url) {
         let obj;
-        let client;
-        let connection = new WebSocket(url);
+        connection = new WebSocket(url);
+        client = {"Type": "browser", "Id": "vue-xxx"};
         connection.onmessage = function (event) {
             console.log(event.data);
             controller.msg = event.data;
             obj = JSON.parse(event.data);
-            client = {"Type": "browser", "Id": "vue-xxx"};
             switch (obj.action.toLowerCase()) {
                 case "register":
                     connection.send(JSON.stringify({
@@ -37,6 +41,10 @@ export default function useController() {
                     controller.status = "Device list returned";
                     controller.msg = obj.data;
                     break;
+                case "receiveinfo":
+                    controller.status = "Device info received";
+                    controller.msg = obj.data;
+                    break;
                 default:
                     console.log("Nothing to do for action : " + obj.action)
                     console.log("Received data : " + obj.data)
@@ -46,7 +54,20 @@ export default function useController() {
         }
 
     }
+    function deviceInfo(deviceId) {
+        let device = {"Type": "device", "Id": deviceId};
+        let data = {"Action": "GetInfo",
+            "data": client,
+            "client": device
+        };
+        connection.send(JSON.stringify({
+            "client": device,
+            "action": "Relay",
+            "data": data
+        }));
+        console.log(deviceId)
+    }
 
-    return { ...toRefs(controller), newConnection };
+    return { ...toRefs(controller), newConnection, deviceInfo };
 
 }
