@@ -181,6 +181,10 @@ func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, clien
 
 }
 
+func (commCtr *CommandCenter) Acknowledge(data interface{}) {
+	log.Printf("Acknowledge received: %s", data.(string))
+}
+
 func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
 	var destConn *websocket.Conn
 
@@ -199,6 +203,36 @@ func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, clie
 		SendMessage(commCtr, destConn, msg.Action, msg.Data)
 	} else {
 		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
+	}
+}
+
+func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, client model.Node) {
+	msg := model.Message{}.SetFromInterface(data)
+
+	switch msg.Client.Type {
+	case model.BROWSER, model.CLI:
+		for _, destConn := range commCtr.clients {
+			if destConn != conn {
+				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+			}
+		}
+	case model.DEVICE:
+		for _, destConn := range commCtr.devices {
+			if destConn != conn {
+				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+			}
+		}
+	default:
+		for _, destConn := range commCtr.clients {
+			if destConn != conn {
+				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+			}
+		}
+		for _, destConn := range commCtr.devices {
+			if destConn != conn {
+				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+			}
+		}
 	}
 
 }

@@ -8,6 +8,7 @@ export default function useController() {
     const controller = reactive({
         msg:"",
         status:"Hello",
+        modules: null,
         //deviceId:""
     })
 
@@ -44,6 +45,7 @@ export default function useController() {
                 case "receiveinfo":
                     controller.status = "Device info received";
                     controller.msg = obj.data;
+                    controller.modules = obj.data.device.Modules;
                     break;
                 default:
                     console.log("Nothing to do for action : " + obj.action)
@@ -68,6 +70,20 @@ export default function useController() {
         console.log(deviceId)
     }
 
-    return { ...toRefs(controller), newConnection, deviceInfo };
+
+    function toggleGpio(deviceId, name, gpio ) {
+        let device = {"Type": "device", "Id": deviceId};
+
+        let i2c = {"command":"reverse", "id": deviceId, "module": name, "sw": "" + gpio};
+        let data = {"Action": "SetGPIO", "client": device, "data": i2c};
+
+        connection.send(JSON.stringify({
+            "action": "Relay",
+            "device": device,
+            "data": data
+        }))
+    }
+
+    return { ...toRefs(controller), newConnection, deviceInfo, toggleGpio };
 
 }

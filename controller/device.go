@@ -148,6 +148,7 @@ func (device *Device) Listen(channel chan int) {
 }
 
 func (device *Device) Invoke(function model.Action, data interface{}) {
+
 	inputs := make([]reflect.Value, 1)
 	inputs[0] = reflect.ValueOf(data)
 	fnc := reflect.ValueOf(device).MethodByName(string(function))

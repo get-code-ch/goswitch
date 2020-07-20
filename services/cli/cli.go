@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"goswitch/config"
 	"goswitch/controller"
@@ -66,6 +67,10 @@ func main() {
 				}
 			}
 			data := model.Message{Action: model.SETGPIO, Client: model.Node{Type: model.DEVICE, Id: arguments["id"].(string)}, Data: arguments}
+			j, err := json.Marshal(data)
+			if err == nil {
+				log.Printf("JSON: %s", string(j))
+			}
 			controller.SendMessage(cli, nil, model.RELAY, data)
 			fmt.Printf("\n> ")
 			continue
