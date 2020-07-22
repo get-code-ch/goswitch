@@ -64,8 +64,20 @@ func NewDevice(conf *config.ConfDevice) *Device {
 	}
 	device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
 	if err != nil {
-		//log.Fatal("dial error:", err)
-		log.Printf("dial error: %v", err)
+		count := 0
+		log.Printf("Dial error -> %v", err)
+
+		device.conn = nil
+		for {
+			time.Sleep(5 * time.Second)
+			device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
+			if err == nil {
+				break
+			} else {
+				count++
+				log.Printf("Dial error (%d) -> %v", count, err)
+			}
+		}
 	}
 
 	device.setMacAddress(conf.Interface.Name)
@@ -120,27 +132,24 @@ func (device *Device) Send(conn *websocket.Conn, action model.Action, data inter
 
 func (device *Device) Listen(channel chan int) {
 	msg := new(model.Message)
+	count := 0
 
 	for {
 		err := device.conn.ReadJSON(&msg)
 		if err != nil {
-			if err.(*net.OpError).Err.(*os.SyscallError).Error() == "wsarecv: An existing connection was forcibly closed by the remote host." {
-				log.Printf("Type closed by peer %v", err)
-				device.conn = nil
-				for {
-					time.Sleep(5 * time.Second)
-					device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
-					if err == nil {
-						//SendMessage(device, nil, model.RECONNECT, device.me)
-						break
-					}
+			log.Printf("Connection error -> %v", err)
+			device.conn = nil
+			for {
+				time.Sleep(5 * time.Second)
+				device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
+				if err == nil {
+					break
+				} else {
+					count++
+					log.Printf("Connection error (%d) -> %v", count, err)
 				}
-				continue
-			} else {
-				log.Printf("ERROR reading websocket --> %v", err)
-				close(channel)
-				return
 			}
+			continue
 		}
 		device.Invoke(msg.Action, msg.Data)
 

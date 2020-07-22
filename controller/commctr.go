@@ -96,6 +96,22 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 		err := conn.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("ERROR reading serveWs --> %v", err)
+			// Removing device or client/browser from list
+			for key, value := range commCtr.clients {
+				if value == conn {
+					delete(commCtr.clients, key)
+					break
+				}
+			}
+			for key, value := range commCtr.devices {
+				if value == conn {
+					delete(commCtr.devices, key)
+					for _, client := range commCtr.clients {
+						SendMessage(commCtr, client, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
+					}
+					break
+				}
+			}
 			return
 		}
 

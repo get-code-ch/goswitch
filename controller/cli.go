@@ -7,7 +7,6 @@ import (
 	"goswitch/config"
 	"goswitch/model"
 	"log"
-	"net"
 	"net/url"
 	"os"
 	"reflect"
@@ -40,8 +39,20 @@ func NewCli(conf *config.ConfCli) *Cli {
 	}
 	cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
 	if err != nil {
-		//log.Fatal("dial error:", err)
-		log.Printf("dial error: %v", err)
+		count := 0
+		log.Printf("Dial error -> %v", err)
+
+		cli.conn = nil
+		for {
+			time.Sleep(5 * time.Second)
+			cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
+			if err == nil {
+				break
+			} else {
+				count++
+				log.Printf("Dial error (%d) -> %v", count, err)
+			}
+		}
 	}
 
 	cli.Name, err = os.Hostname()
@@ -65,31 +76,28 @@ func (cli *Cli) Send(conn *websocket.Conn, action model.Action, data interface{}
 
 func (cli *Cli) Listen(channel chan int) {
 	msg := new(model.Message)
+	count := 0
 
 	for {
 		err := cli.conn.ReadJSON(&msg)
 		if err != nil {
-			if err.(*net.OpError).Err.(*os.SyscallError).Error() == "wsarecv: An existing connection was forcibly closed by the remote host." {
-				log.Printf("Type closed by peer %v", err)
-				cli.conn = nil
-				for {
-					time.Sleep(5 * time.Second)
-					cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
-					if err == nil {
-						//SendMessage(cli, nil, model.RECONNECT, cli.me)
-						break
-					}
+			log.Printf("Connection error -> %v", err)
+			cli.conn = nil
+			for {
+				time.Sleep(5 * time.Second)
+				cli.conn, _, err = websocket.DefaultDialer.Dial(cli.url.String(), nil)
+				if err == nil {
+					break
+				} else {
+					count++
+					log.Printf("Connection error (%d) -> %v", count, err)
 				}
-				continue
-			} else {
-				log.Printf("ERROR reading websocket --> %v", err)
-				close(channel)
-				return
 			}
+			continue
 		}
 		cli.Invoke(msg.Action, msg.Data)
-
 	}
+
 }
 
 func (cli *Cli) Invoke(function model.Action, data interface{}) {

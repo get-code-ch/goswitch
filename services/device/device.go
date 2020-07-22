@@ -10,6 +10,8 @@ import (
 )
 
 func main() {
+	var err error
+
 	receiver := make(chan int)
 
 	configFile := ""
@@ -26,7 +28,8 @@ func main() {
 	copy(device.Modules, conf.Modules)
 	for idx := range device.Modules {
 
-		err := mcp23008.Init("/dev/i2c-0", device.Modules[idx].Address, &device.Modules[idx])
+		//err := mcp23008.Init("/dev/i2c-0", device.Modules[idx].Address, &device.Modules[idx])
+		device.Modules[idx], err = mcp23008.New("/dev/i2c-0", device.Modules[idx].Name, device.Modules[idx].Address, device.Modules[idx].Count, device.Modules[idx].Description)
 		if err != nil {
 			log.Printf("Error i2c module init -> %s", err)
 			device.I2cMode = model.SIMULATION

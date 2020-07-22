@@ -2,3 +2,4 @@
 *.exe
 /services/device/release/goswitch/
 /release/
+/clipboard/data.json
