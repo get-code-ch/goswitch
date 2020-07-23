@@ -108,6 +108,7 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 					delete(commCtr.devices, key)
 					for _, client := range commCtr.clients {
 						SendMessage(commCtr, client, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
+						commCtr.List(client, nil, model.Node{})
 					}
 					break
 				}
@@ -154,27 +155,17 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 		commCtr.clients[node.Id] = conn
 	case model.DEVICE:
 		commCtr.devices[node.Id] = conn
+		for _, c := range commCtr.clients {
+			SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s connected", node.Id))
+			commCtr.List(c, nil, model.Node{})
+		}
+
 	}
 	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 }
 
-func (commCtr *CommandCenter) Reconnect(conn *websocket.Conn, data interface{}, client model.Node) {
-	d := data.(map[string]interface{})
-	node := new(model.Node)
-	node.Id = d["Id"].(string)
-	node.Type = model.NodeType(d["Type"].(string))
-
-	switch node.Type {
-	case model.BROWSER, model.CLI:
-		commCtr.clients[node.Id] = conn
-	case model.DEVICE:
-		commCtr.devices[node.Id] = conn
-	}
-	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
-}
-
-func (commCtr *CommandCenter) Error(conn *websocket.Conn, data interface{}) {
-	log.Printf("ERROR function, data: %v", data)
+func (commCtr *CommandCenter) Acknowledge(data interface{}) {
+	log.Printf("Acknowledge received: %s", data.(string))
 }
 
 func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data interface{}, client model.Node) {
@@ -182,6 +173,10 @@ func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data interface{}, clien
 	log.Printf("Echo request: %v", data)
 	SendMessage(commCtr, conn, model.ACKNOWLEDGE, data.(string))
 
+}
+
+func (commCtr *CommandCenter) Error(conn *websocket.Conn, data interface{}) {
+	log.Printf("ERROR function, data: %v", data)
 }
 
 func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, client model.Node) {
@@ -195,31 +190,6 @@ func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, clien
 	}
 	SendMessage(commCtr, conn, model.LIST, deviceLst)
 
-}
-
-func (commCtr *CommandCenter) Acknowledge(data interface{}) {
-	log.Printf("Acknowledge received: %s", data.(string))
-}
-
-func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
-	var destConn *websocket.Conn
-
-	msg := model.Message{}.SetFromInterface(data)
-
-	switch msg.Client.Type {
-	case model.BROWSER, model.CLI:
-		destConn = commCtr.clients[msg.Client.Id]
-	case model.DEVICE:
-		destConn = commCtr.devices[msg.Client.Id]
-	default:
-		destConn = nil
-	}
-
-	if destConn != nil {
-		SendMessage(commCtr, destConn, msg.Action, msg.Data)
-	} else {
-		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
-	}
 }
 
 func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, client model.Node) {
@@ -250,5 +220,25 @@ func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, 
 			}
 		}
 	}
+}
 
+func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
+	var destConn *websocket.Conn
+
+	msg := model.Message{}.SetFromInterface(data)
+
+	switch msg.Client.Type {
+	case model.BROWSER, model.CLI:
+		destConn = commCtr.clients[msg.Client.Id]
+	case model.DEVICE:
+		destConn = commCtr.devices[msg.Client.Id]
+	default:
+		destConn = nil
+	}
+
+	if destConn != nil {
+		SendMessage(commCtr, destConn, msg.Action, msg.Data)
+	} else {
+		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
+	}
 }

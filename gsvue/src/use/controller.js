@@ -21,14 +21,6 @@ export default function useController() {
             controller.msg = event.data;
             obj = JSON.parse(event.data);
             switch (obj.action.toLowerCase()) {
-                case "register":
-                    connection.send(JSON.stringify({
-                        "client": client,
-                        "action": "Register",
-                        "server": obj.server,
-                        "data": client
-                    }));
-                    break;
                 case "accept":
                     controller.status = "Server->" + obj.server.Id;
                     connection.send(JSON.stringify({
@@ -38,6 +30,10 @@ export default function useController() {
                         "data": ""
                     }))
                     break;
+                case "acknowledge":
+                    controller.status = "Acknowledgment";
+                    controller.msg = obj.data;
+                    break;
                 case "list":
                     controller.status = "Device list returned";
                     controller.msg = obj.data;
@@ -46,6 +42,14 @@ export default function useController() {
                     controller.status = "Device info received";
                     controller.msg = obj.data;
                     controller.modules = obj.data.device.Modules;
+                    break;
+                case "register":
+                    connection.send(JSON.stringify({
+                        "client": client,
+                        "action": "Register",
+                        "server": obj.server,
+                        "data": client
+                    }));
                     break;
                 default:
                     console.log("Nothing to do for action : " + obj.action)
