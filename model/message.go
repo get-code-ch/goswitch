@@ -15,6 +15,7 @@ const (
 	ACKNOWLEDGE Action = "Acknowledge"
 	ACCEPT      Action = "Accept"
 	RELAY       Action = "Relay"
+	BROADCAST   Action = "Broadcast"
 	LIST        Action = "List"
 	GETINFO     Action = "GetInfo"
 	SENDINFO    Action = "ReceiveInfo"

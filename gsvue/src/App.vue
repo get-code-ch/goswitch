@@ -1,12 +1,21 @@
 <template>
     <p>msg: {{msg}}</p>
     <p>status: {{status}}</p>
-    Device: <input v-model="deviceId">
-    <button @click="deviceInfo(deviceId)">Device Info</button>
 
+    <div v-if="devices != null">
+        <ul>
+            <li v-for="device in devices" :key="device.Id">
+                <button @click="deviceInfo(device)">{{ device }}</button>
+            </li>
+        </ul>
+    </div>
+    <!--
+    <input v-model="deviceId" hidden>
+    <button @click="deviceInfo(deviceId)">Device Info</button>
+    -->
 
     <div v-if="modules != null">
-        Selectect device: {{deviceId}}
+        Selected device: {{deviceId}}
         <ul>
             <li v-for="module in modules" :key="module.name">
                 {{ module.name }} - {{ module.description }}
@@ -23,18 +32,17 @@
 </template>
 <script>
     import useController from "./use/controller";
-    import {onMounted, ref} from "vue"
+    import {onMounted} from "vue"
 
     export default {
         setup() {
-            const deviceId = ref("")
             onMounted(() => {
                 newConnection("ws://localhost:4444/ws");
                 console.log("Mounted");
             })
 
-            const {newConnection, deviceInfo, toggleGpio, msg, status, modules} = useController();
-            return {msg, status, modules, deviceId, deviceInfo, toggleGpio};
+            const {newConnection, deviceInfo, toggleGpio, msg, status, modules, devices, deviceId} = useController();
+            return {msg, status, modules, devices, deviceId, deviceInfo, toggleGpio};
         }
     };
 </script>

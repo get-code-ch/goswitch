@@ -188,13 +188,14 @@ func (device *Device) Accept(data interface{}) {
 }
 
 func (device *Device) GetInfo(data interface{}) {
-	client := model.Node{}.SetFromInterface(data)
+	//client := model.Node{}.SetFromInterface(data)
 
 	hostName, _ := os.Hostname()
 
 	deviceInfo := DeviceInfo{Hostname: hostName, Device: *device}
 
-	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: client}
+	//info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: client}
+	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}}
 
-	SendMessage(device, nil, model.RELAY, info)
+	SendMessage(device, nil, model.BROADCAST, info)
 }

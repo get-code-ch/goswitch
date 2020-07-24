@@ -7,15 +7,16 @@ export default function useController() {
 
     const controller = reactive({
         msg:"",
-        status:"Hello",
+        status:"",
+        deviceId:"",
+        devices: null,
         modules: null,
-        //deviceId:""
     })
 
     function newConnection(url) {
         let obj;
         connection = new WebSocket(url);
-        client = {"Type": "browser", "Id": "vue-xxx"};
+        client = {"Type": "browser", "Id": "vue-" + makeid(5)};
         connection.onmessage = function (event) {
             console.log(event.data);
             controller.msg = event.data;
@@ -37,6 +38,7 @@ export default function useController() {
                 case "list":
                     controller.status = "Device list returned";
                     controller.msg = obj.data;
+                    controller.devices = obj.data;
                     break;
                 case "receiveinfo":
                     controller.status = "Device info received";
@@ -61,6 +63,7 @@ export default function useController() {
 
     }
     function deviceInfo(deviceId) {
+        controller.deviceId = deviceId;
         let device = {"Type": "device", "Id": deviceId};
         let data = {"Action": "GetInfo",
             "data": client,
@@ -88,6 +91,16 @@ export default function useController() {
         }))
     }
 
+
+    function makeid(length) {
+        let result           = '';
+        let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let charactersLength = characters.length;
+        for ( let i = 0; i < length; i++ ) {
+            result += characters.charAt(Math.floor(Math.random() * charactersLength));
+        }
+        return result;
+    }
     return { ...toRefs(controller), newConnection, deviceInfo, toggleGpio };
 
 }
