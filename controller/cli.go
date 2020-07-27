@@ -138,13 +138,12 @@ func (cli *Cli) ReceiveInfo(data interface{}) {
 	// Insert or update devices info
 	cli.Devices[deviceInfo.Device.me.Id] = deviceInfo
 
-	for _, module := range deviceInfo.Device.Modules {
-		fmt.Printf("Name -> %s ", module.Name)
-		for idx, sw := range module.Gpios {
-			fmt.Printf(", switch %d - state %d", idx, sw)
-		}
+	fmt.Printf("\n")
+	for _, swc := range deviceInfo.Device.Switches {
+		fmt.Printf("Name -> %s (%d), GPIO %d - state %d ", swc.Name, swc.Address, swc.Gpio, swc.State)
 		fmt.Printf("\n")
 	}
+
 	fmt.Printf("\n> ")
 }
 

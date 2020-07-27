@@ -10,17 +10,23 @@ import (
 
 func (device *Device) SetGPIO(data interface{}) {
 
+	var err error
 	arguments := data.(map[string]interface{})
 
 	command := strings.ToLower(arguments["command"].(string))
-	module := arguments["module"].(string)
-	sw, err := strconv.Atoi(arguments["sw"].(string))
+	address, err := strconv.Atoi(arguments["address"].(string))
+	if err != nil {
+
+	}
+	sw, err := strconv.Atoi(arguments["gpio"].(string))
 	if err != nil {
 		sw = -1
 	}
 
 	for idx := range device.Modules {
-		if device.Modules[idx].Name == module && sw > -1 {
+		if device.Modules[idx].Address == address && sw > -1 {
+			log.Printf("Module address-> %d / Address-> %d\n", device.Modules[idx].Address, address)
+			log.Printf("Switch-> %d\n", byte(sw))
 			if device.I2cMode == model.REAL {
 				switch strings.ToLower(command) {
 				case "off":

@@ -3,6 +3,7 @@ import {reactive, toRefs} from "vue";
 export default function useController() {
 
     let connection;
+    let id;
     let client;
 
     const controller = reactive({
@@ -11,12 +12,14 @@ export default function useController() {
         deviceId:"",
         devices: null,
         modules: null,
+        switches: null,
     })
 
     function newConnection(url) {
         let obj;
+        id = makeid(5);
+        client = {"Type": "browser", "Id": "vue-" + id};
         connection = new WebSocket(url);
-        client = {"Type": "browser", "Id": "vue-" + makeid(5)};
         connection.onmessage = function (event) {
             console.log(event.data);
             controller.msg = event.data;
@@ -43,7 +46,8 @@ export default function useController() {
                 case "receiveinfo":
                     controller.status = "Device info received";
                     controller.msg = obj.data;
-                    controller.modules = obj.data.device.Modules;
+                    controller.modules = obj.data.device.modules;
+                    controller.switches = obj.data.device.switches;
                     break;
                 case "register":
                     connection.send(JSON.stringify({
@@ -78,10 +82,10 @@ export default function useController() {
     }
 
 
-    function toggleGpio(deviceId, name, gpio ) {
+    function toggleGpio(deviceId, address, gpio ) {
         let device = {"Type": "device", "Id": deviceId};
 
-        let i2c = {"command":"reverse", "id": deviceId, "module": name, "sw": "" + gpio};
+        let i2c = {"command":"reverse", "id": deviceId, "address": "" + address, "gpio": "" + gpio};
         let data = {"Action": "SetGPIO", "client": device, "data": i2c};
 
         connection.send(JSON.stringify({

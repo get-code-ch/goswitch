@@ -9,22 +9,13 @@
             </li>
         </ul>
     </div>
-    <!--
-    <input v-model="deviceId" hidden>
-    <button @click="deviceInfo(deviceId)">Device Info</button>
-    -->
 
-    <div v-if="modules != null">
+    <div v-if="switches != null">
         Selected device: {{deviceId}}
         <ul>
-            <li v-for="module in modules" :key="module.name">
-                {{ module.name }} - {{ module.description }}
-                <ul>
-                    <li v-for="(gpio, index) in module.gpios" :key="index">
-                        gpio {{ index }} - state {{ gpio}}
-                        <button @click="toggleGpio(deviceId, module.name, index)">Toogle state</button>
-                    </li>
-                </ul>
+            <li v-for="swc in switches" :key="swc.name">
+                {{ swc.name }} - {{ swc.state }}
+                <button @click="toggleGpio(deviceId, swc.address, swc.gpio)">{{swc.name}}</button>
             </li>
         </ul>
     </div>
@@ -41,8 +32,8 @@
                 console.log("Mounted");
             })
 
-            const {newConnection, deviceInfo, toggleGpio, msg, status, modules, devices, deviceId} = useController();
-            return {msg, status, modules, devices, deviceId, deviceInfo, toggleGpio};
+            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, modules, switches } = useController();
+            return {msg, status, deviceId, devices, modules, switches, deviceInfo, toggleGpio};
         }
     };
 </script>

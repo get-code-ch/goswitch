@@ -27,8 +27,10 @@ type Device struct {
 	url        url.URL
 	ssl        bool
 	Name       string
+	I2c        string
 	I2cMode    model.I2cMode
 	Modules    []mcp23008.Mcp23008
+	Switches   []config.I2cSwitch `json:"switches"`
 }
 
 func (device Device) SetFromInterface(data interface{}) Device {
@@ -84,6 +86,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.me = model.Node{Type: model.DEVICE, Id: device.Name}
 	device.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
+	device.I2c = conf.Interface.I2c
 	device.registered = false
 
 	return device
@@ -188,13 +191,10 @@ func (device *Device) Accept(data interface{}) {
 }
 
 func (device *Device) GetInfo(data interface{}) {
-	//client := model.Node{}.SetFromInterface(data)
-
 	hostName, _ := os.Hostname()
 
 	deviceInfo := DeviceInfo{Hostname: hostName, Device: *device}
 
-	//info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: client}
 	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}}
 
 	SendMessage(device, nil, model.BROADCAST, info)

@@ -6,17 +6,20 @@
     "ssl": false
   },
   "interface": {
+    "i2c": "/dev/i2c-0",
     "name": "Ethernet"
   },
+
+  "switches":[
+    {"address": 32, "gpio": 0, "name": "Fake", "state": 0},
+    {"address": 32, "gpio": 1, "name": "Blue", "state": 0},
+    {"address": 32, "gpio": 7, "name": "Relay", "state": 0}
+  ],
+
+
   "modules": [
     {
-      "name": "Relay1",
-      "address": 39,
-      "count": 2,
-      "description": "Expansion relay module 1 0x27"
-    },
-    {
-      "name": "Relay2",
+      "name": "Fake",
       "address": 32,
       "count": 2,
       "description": "Expansion relay module 2 0x20"

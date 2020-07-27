@@ -17,7 +17,7 @@ func main() {
 	endRE := regexp.MustCompile(`^\.{3}[\r\n]+$`)
 	listRE := regexp.MustCompile(`(?mi)^(list)\s?[\r\n]+$`)
 	getInfoRE := regexp.MustCompile(`(?mi)^(info)\s([\S]+)\s?[\r\n]+$`)
-	setGpioRE := regexp.MustCompile(`(?mi)^(?P<command>On|Off)\s(?P<id>[\S]+)\s(?P<module>[\S]+)\s(?P<sw>[\S]+)\s?[\r\n]+$`)
+	setGpioRE := regexp.MustCompile(`(?mi)^(?P<command>On|Off)\s(?P<id>[\S]+)\s(?P<address>[\S]+)\s(?P<gpio>[\S]+)\s?[\r\n]+$`)
 	fakeRE := regexp.MustCompile(`^(fake)[\r\n]+$`)
 	//getXxxRE := regexp.MustCompile(`(?mi)^(xxx)\s([\S]+)\s?[\r\n]+$`)
 

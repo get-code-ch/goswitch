@@ -26,10 +26,13 @@ func main() {
 	device.I2cMode = model.REAL
 	device.Modules = make([]mcp23008.Mcp23008, len(conf.Modules))
 	copy(device.Modules, conf.Modules)
+
+	device.Switches = make([]config.I2cSwitch, len(conf.Switches))
+	copy(device.Switches, conf.Switches)
+
 	for idx := range device.Modules {
 
-		//err := mcp23008.Init("/dev/i2c-0", device.Modules[idx].Address, &device.Modules[idx])
-		device.Modules[idx], err = mcp23008.New("/dev/i2c-0", device.Modules[idx].Name, device.Modules[idx].Address, device.Modules[idx].Count, device.Modules[idx].Description)
+		device.Modules[idx], err = mcp23008.New(device.I2c, device.Modules[idx].Name, device.Modules[idx].Address, device.Modules[idx].Count, device.Modules[idx].Description)
 		if err != nil {
 			log.Printf("Error i2c module init -> %s", err)
 			device.I2cMode = model.SIMULATION

@@ -12,6 +12,7 @@ type ConfDevice struct {
 	Controller ConfCommCtr         `json:"controller"`
 	Interface  ConfInterface       `json:"interface"`
 	Modules    []mcp23008.Mcp23008 `json:"modules"`
+	Switches   []I2cSwitch         `json:"switches"`
 }
 
 type ConfCli struct {
@@ -27,11 +28,19 @@ type ConfCommCtr struct {
 	Cert   ConfCertificate `json:"cert,omitempty"`
 }
 
+type I2cSwitch struct {
+	Address int    `json:"address"`
+	Gpio    int    `json:"gpio"`
+	Name    string `json:"name"`
+	State   int    `json:"state"`
+}
+
 type ConfCertificate struct {
 	SslKey  string `json:"ssl_key"`
 	SslCert string `json:"ssl_cert,"`
 }
 
 type ConfInterface struct {
+	I2c  string `json:"i2c"`
 	Name string `json:"name"`
 }
