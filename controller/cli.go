@@ -151,6 +151,12 @@ func (cli *Cli) Echo(data interface{}) {
 	SendMessage(cli, nil, model.ACKNOWLEDGE, data.(string))
 }
 
+func (cli *Cli) GPIOState(data interface{}) {
+	swc := config.I2cSwitch{}.SetFromInterface(data)
+	fmt.Printf("Switch %s updated to %d\n", swc.Name, swc.State)
+	fmt.Printf("> ")
+}
+
 func (cli *Cli) List(data interface{}) {
 
 	itf := data.([]interface{})

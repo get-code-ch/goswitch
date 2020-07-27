@@ -43,3 +43,10 @@ func NewDeviceConfig(configFile string) *ConfDevice {
 func (c *ConfDevice) String() string {
 	return fmt.Sprintf("Contoller %v", c.Controller)
 }
+
+func (swc I2cSwitch) SetFromInterface(data interface{}) I2cSwitch {
+	marshal, _ := json.Marshal(data)
+	converted := I2cSwitch{}
+	json.Unmarshal(marshal, &converted)
+	return converted
+}

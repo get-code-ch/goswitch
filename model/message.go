@@ -22,6 +22,7 @@ const (
 	FAKE        Action = "Fake"
 	SETGPIO     Action = "SetGPIO"
 	GETGPIO     Action = "GetGPIO"
+	GPIOSTATE   Action = "GPIOState"
 )
 
 type Message struct {
