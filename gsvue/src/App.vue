@@ -1,23 +1,23 @@
 <template>
-    <p>msg: {{msg}}</p>
-    <p>status: {{status}}</p>
-
     <div v-if="devices != null">
-        <ul>
-            <li v-for="device in devices" :key="device.Id">
+        <div>
+            <p v-for="device in devices" :key="device.Id">
                 <button @click="deviceInfo(device)">{{ device }}</button>
-            </li>
-        </ul>
+            </p>
+        </div>
     </div>
 
     <div v-if="switches != null">
         Selected device: {{deviceId}}
-        <ul>
-            <li v-for="swc in switches" :key="swc.name">
-                {{ swc.name }} - {{ swc.state }}
-                <button @click="toggleGpio(deviceId, swc.address, swc.gpio)">{{swc.name}}</button>
-            </li>
-        </ul>
+        <div>
+            <p v-for="swc in switches" :key="swc.name">
+                <button class="btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']" @click="toggleGpio(deviceId, swc.address, swc.gpio)">{{swc.name}}</button>
+            </p>
+        </div>
+    </div>
+    <div>
+        <p>status: {{status}}</p>
+        <p>msg: {{msg}}</p>
     </div>
 
 </template>

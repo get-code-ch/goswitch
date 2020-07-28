@@ -55,13 +55,16 @@ func (device *Device) SetGPIO(data interface{}) {
 
 func (device *Device) GetAllGPIOState(data interface{}) {
 
-	for idx, i2cSwitch := range device.Switches {
+	for _, swc := range device.Switches {
 		for _, module := range device.Modules {
-			if module.Address == i2cSwitch.Address {
-				log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, i2cSwitch.Address, i2cSwitch.Gpio, idx)
-				i2cSwitch.State = int(mcp23008.ReadGpio(&module, byte(idx)))
-				msg := model.Message{Action: model.GPIOSTATE, Data: i2cSwitch, Client: model.Node{Id: "", Type: model.CLI}}
-				SendMessage(device, nil, model.BROADCAST, msg)
+			if module.Address == swc.Address {
+				if device.I2cMode == model.REAL {
+					swc.State = int(mcp23008.ReadGpio(&module, byte(swc.Gpio)))
+					msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
+					SendMessage(device, nil, model.BROADCAST, msg)
+				} else {
+					log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, swc.Address, swc.Gpio, swc.State)
+				}
 			}
 		}
 	}

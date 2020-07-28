@@ -38,6 +38,15 @@ export default function useController() {
                     controller.status = "Acknowledgment";
                     controller.msg = obj.data;
                     break;
+                case "gpiostate":
+                    controller.status = "GPIO State received";
+                    controller.msg = obj.data;
+                    controller.switches.forEach(swc => {
+                       if (swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
+                           swc.state = obj.data.state;
+                       }
+                    });
+                    break;
                 case "list":
                     controller.status = "Device list returned";
                     controller.msg = obj.data;

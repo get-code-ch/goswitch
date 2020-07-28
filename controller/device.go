@@ -197,7 +197,8 @@ func (device *Device) GetInfo(data interface{}) {
 
 	deviceInfo := DeviceInfo{Hostname: hostName, Device: *device}
 
-	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}}
+	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
 
 	SendMessage(device, nil, model.BROADCAST, info)
+	device.GetAllGPIOState("")
 }
