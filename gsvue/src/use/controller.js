@@ -2,8 +2,11 @@ import {reactive, toRefs} from "vue";
 
 export default function useController() {
 
+    // const url = "ws://localhost:4444/ws";
+    const url = "wss://get-code.ch:4444/ws";
+
     let connection;
-    let id;
+    let id = makeId(5);
     let client;
 
     const controller = reactive({
@@ -11,15 +14,26 @@ export default function useController() {
         status:"",
         deviceId:"",
         devices: null,
-        modules: null,
         switches: null,
     })
 
-    function newConnection(url) {
+    function newConnection() {
         let obj;
-        id = makeid(5);
         client = {"Type": "browser", "Id": "vue-" + id};
         connection = new WebSocket(url);
+
+        connection.onerror = function (event) {
+            connectionOnError(event);
+        }
+
+        connection.onopen = function(event) {
+            connectionOnOpen(event);
+        }
+
+        connection.onclose = function(event) {
+            connectionOnClose(event);
+        }
+
         connection.onmessage = function (event) {
             console.log(event.data);
             controller.msg = event.data;
@@ -41,21 +55,27 @@ export default function useController() {
                 case "gpiostate":
                     controller.status = "GPIO State received";
                     controller.msg = obj.data;
-                    controller.switches.forEach(swc => {
-                       if (swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
-                           swc.state = obj.data.state;
-                       }
-                    });
+                    if (controller.switches != null) {
+                        controller.switches.forEach(swc => {
+                            if (swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
+                                swc.state = obj.data.state;
+                            }
+                        });
+                    }
                     break;
                 case "list":
                     controller.status = "Device list returned";
                     controller.msg = obj.data;
                     controller.devices = obj.data;
+                    if (controller.devices.findIndex((d) => d == controller.deviceId) == -1) {
+                     controller.deviceId = "";
+                     controller.switches = null;
+                    }
+
                     break;
                 case "receiveinfo":
                     controller.status = "Device info received";
                     controller.msg = obj.data;
-                    controller.modules = obj.data.device.modules;
                     controller.switches = obj.data.device.switches;
                     break;
                 case "register":
@@ -75,6 +95,25 @@ export default function useController() {
         }
 
     }
+
+    function connectionOnError(event) {
+        console.log("Socket connection error -> ", event.data);
+    }
+
+    function connectionOnOpen(event) {
+        console.log("Connection open -> ", event.data)
+    }
+
+    function connectionOnClose(event) {
+        console.log("Socket is closed, Reconnect in 5 seconds -> ", event.data);
+        connection = null;
+        controller.devices = null;
+        controller.switches = null;
+        setTimeout(() =>{
+            newConnection();
+        }, 5000);
+    }
+
     function deviceInfo(deviceId) {
         controller.deviceId = deviceId;
         let device = {"Type": "device", "Id": deviceId};
@@ -105,7 +144,7 @@ export default function useController() {
     }
 
 
-    function makeid(length) {
+    function makeId(length) {
         let result           = '';
         let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let charactersLength = characters.length;

@@ -17,7 +17,7 @@
     </div>
     <div>
         <p>status: {{status}}</p>
-        <p>msg: {{msg}}</p>
+<!--        <p>msg: {{msg}}</p>-->
     </div>
 
 </template>
@@ -28,12 +28,12 @@
     export default {
         setup() {
             onMounted(() => {
-                newConnection("ws://localhost:4444/ws");
+                newConnection();
                 console.log("Mounted");
             })
 
-            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, modules, switches } = useController();
-            return {msg, status, deviceId, devices, modules, switches, deviceInfo, toggleGpio};
+            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches } = useController();
+            return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio};
         }
     };
 </script>

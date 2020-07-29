@@ -137,8 +137,6 @@ func (device *Device) Listen(channel chan int) {
 	msg := new(model.Message)
 	count := 0
 
-	device.GetAllGPIOState("")
-
 	for {
 		err := device.conn.ReadJSON(&msg)
 		if err != nil {
@@ -190,6 +188,8 @@ func (device *Device) Acknowledge(data interface{}) {
 
 func (device *Device) Accept(data interface{}) {
 	log.Printf("Connection accepted: %s\n", data.(string))
+	device.GetAllGPIOState("")
+
 }
 
 func (device *Device) GetInfo(data interface{}) {
