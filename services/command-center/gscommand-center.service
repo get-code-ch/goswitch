@@ -1,0 +1,14 @@
+[Unit]
+Description=GoSwitch Command Center service
+After=network.target
+StartLimitIntervalSec=30
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+User=root
+ExecStart=/opt/goswitch/gscommand-center /opt/goswitch/config/commctr.json
+
+[Install]
+WantedBy=multi-user.target

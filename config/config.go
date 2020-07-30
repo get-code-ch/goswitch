@@ -21,11 +21,12 @@ type ConfCli struct {
 }
 
 type ConfCommCtr struct {
-	ApiKey string          `json:"api_key"`
-	Server string          `json:"server"`
-	Port   string          `json:"port"`
-	Ssl    bool            `json:"ssl"`
-	Cert   ConfCertificate `json:"cert,omitempty"`
+	ApiKey     string          `json:"api_key"`
+	Server     string          `json:"server"`
+	Port       string          `json:"port"`
+	Ssl        bool            `json:"ssl"`
+	Cert       ConfCertificate `json:"cert,omitempty"`
+	ClientRoot string          `json:"client_root"`
 }
 
 type I2cSwitch struct {

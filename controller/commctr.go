@@ -12,16 +12,17 @@ import (
 )
 
 type CommandCenter struct {
-	active   bool
-	upgrader websocket.Upgrader
-	conn     *websocket.Conn
-	devices  map[string]*websocket.Conn
-	clients  map[string]*websocket.Conn
-	me       model.Node
-	ssl      bool
-	cert     config.ConfCertificate
-	server   string
-	port     string
+	active     bool
+	upgrader   websocket.Upgrader
+	conn       *websocket.Conn
+	devices    map[string]*websocket.Conn
+	clients    map[string]*websocket.Conn
+	me         model.Node
+	ssl        bool
+	cert       config.ConfCertificate
+	server     string
+	port       string
+	clientRoot string
 }
 
 func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
@@ -35,6 +36,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.cert.SslKey = conf.Cert.SslKey
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
+	commCtr.clientRoot = conf.ClientRoot
 
 	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
 
@@ -52,7 +54,8 @@ func (commCtr *CommandCenter) Listen(channel chan int) {
 		fmt.Fprintf(w, "<h1>goswitch server controller</h1>")
 	})
 
-	fs := http.FileServer(http.Dir("./gsvue/dist/"))
+	//fs := http.FileServer(http.Dir("./gsvue/dist/"))
+	fs := http.FileServer(http.Dir(commCtr.clientRoot))
 	http.Handle("/", fs)
 
 	if commCtr.ssl {
