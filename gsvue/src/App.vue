@@ -17,6 +17,8 @@
     </div>
     <div>
         <p>status: {{status}}</p>
+        <p class="state" v-bind:class="connected">{{connected}}</p>
+
 <!--        <p>msg: {{msg}}</p>-->
     </div>
 
@@ -32,8 +34,8 @@
                 console.log("Mounted");
             })
 
-            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches } = useController();
-            return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio};
+            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected } = useController();
+            return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
         }
     };
 </script>

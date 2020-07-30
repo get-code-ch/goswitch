@@ -2,9 +2,6 @@ import {reactive, toRefs} from "vue";
 
 export default function useController() {
 
-    // const url = "ws://localhost:4444/ws";
-    const url = "wss://get-code.ch:4444/ws";
-
     let connection;
     let id = makeId(5);
     let client;
@@ -15,12 +12,13 @@ export default function useController() {
         deviceId:"",
         devices: null,
         switches: null,
+        connected: false
     })
 
     function newConnection() {
         let obj;
         client = {"Type": "browser", "Id": "vue-" + id};
-        connection = new WebSocket(url);
+        connection = new WebSocket(genWsUrl());
 
         connection.onerror = function (event) {
             connectionOnError(event);
@@ -101,15 +99,18 @@ export default function useController() {
     }
 
     function connectionOnOpen(event) {
+        controller.connected = 'connected';
         console.log("Connection open -> ", event.data)
     }
 
     function connectionOnClose(event) {
         console.log("Socket is closed, Reconnect in 5 seconds -> ", event.data);
+        controller.connected = 'disconnected';
         connection = null;
         controller.devices = null;
         controller.switches = null;
         setTimeout(() =>{
+            browserNotify("Trying to connect Command Center");
             newConnection();
         }, 5000);
     }
@@ -143,7 +144,6 @@ export default function useController() {
         }))
     }
 
-
     function makeId(length) {
         let result           = '';
         let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -153,6 +153,37 @@ export default function useController() {
         }
         return result;
     }
+
+    function genWsUrl() {
+        let host = window.location.hostname;
+        let protocol = location.protocol
+        let port = location.port;
+
+        if (port == 8080) {
+            port = "4433";
+        }
+        return protocol.toLowerCase() == "https" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";
+
+    }
+
+    function browserNotify(msg) {
+        // eslint-disable-next-line
+        let notification = null;
+        if (!("Notification" in window)) {
+            return ;
+        }
+
+        if (Notification.permission === "granted") {
+            notification = new Notification(msg);
+        } else {
+            Notification.requestPermission().then(function(permission) {
+                if (permission === "granted") {
+                   notification = new Notification(msg);
+                }
+            })
+        }
+    }
+
     return { ...toRefs(controller), newConnection, deviceInfo, toggleGpio };
 
 }
