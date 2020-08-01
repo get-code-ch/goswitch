@@ -12,17 +12,18 @@ import (
 )
 
 type CommandCenter struct {
-	active     bool
-	upgrader   websocket.Upgrader
-	conn       *websocket.Conn
-	devices    map[string]*websocket.Conn
-	clients    map[string]*websocket.Conn
-	me         model.Node
-	ssl        bool
-	cert       config.ConfCertificate
-	server     string
-	port       string
-	clientRoot string
+	active            bool
+	upgrader          websocket.Upgrader
+	conn              *websocket.Conn
+	devices           map[string]*websocket.Conn
+	clients           map[string]*websocket.Conn
+	me                model.Node
+	ssl               bool
+	cert              config.ConfCertificate
+	server            string
+	port              string
+	clientRoot        string
+	authorizedDevices []config.AuthorizedDevice
 }
 
 func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
@@ -37,6 +38,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
 	commCtr.clientRoot = conf.ClientRoot
+	commCtr.authorizedDevices = conf.AuthorizedDevices
 
 	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
 
@@ -108,6 +110,16 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 			}
 			for key, value := range commCtr.devices {
 				if value == conn {
+
+					for dIdx, d := range commCtr.authorizedDevices {
+						if d.MacAddr == key {
+							commCtr.authorizedDevices[dIdx].IsOnline = false
+							for _, c := range commCtr.clients {
+								SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
+							}
+						}
+					}
+
 					delete(commCtr.devices, key)
 					for _, client := range commCtr.clients {
 						SendMessage(commCtr, client, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
@@ -156,15 +168,22 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 	switch node.Type {
 	case model.BROWSER, model.CLI:
 		commCtr.clients[node.Id] = conn
+		SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 	case model.DEVICE:
-		commCtr.devices[node.Id] = conn
-		for _, c := range commCtr.clients {
-			SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s connected", node.Id))
-			commCtr.List(c, nil, model.Node{})
+		for dIdx, d := range commCtr.authorizedDevices {
+			if d.MacAddr == node.Id {
+				commCtr.authorizedDevices[dIdx].IsOnline = true
+				commCtr.devices[node.Id] = conn
+				for _, c := range commCtr.clients {
+					SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s connected", node.Id))
+					commCtr.List(c, nil, model.Node{})
+				}
+				SendMessage(commCtr, conn, model.ACCEPT, node.Id)
+				return
+			}
 		}
-
+		SendMessage(commCtr, conn, model.REJECT, node.Id)
 	}
-	SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 }
 
 func (commCtr *CommandCenter) Acknowledge(data interface{}) {
@@ -183,16 +202,7 @@ func (commCtr *CommandCenter) Error(conn *websocket.Conn, data interface{}) {
 }
 
 func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, client model.Node) {
-	var deviceLst []string
-
-	for key, _ := range commCtr.devices {
-		deviceLst = append(deviceLst, key)
-	}
-	if deviceLst == nil {
-		deviceLst = make([]string, 1)
-	}
-	SendMessage(commCtr, conn, model.LIST, deviceLst)
-
+	SendMessage(commCtr, conn, model.LIST, commCtr.authorizedDevices)
 }
 
 func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, client model.Node) {

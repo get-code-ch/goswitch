@@ -26,7 +26,7 @@ type Device struct {
 	conn       *websocket.Conn
 	url        url.URL
 	ssl        bool
-	Name       string
+	MacAddr    string
 	I2c        string
 	I2cMode    model.I2cMode
 	Modules    []mcp23008.Mcp23008
@@ -84,7 +84,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 
 	device.setMacAddress(conf.Interface.Name)
 
-	device.me = model.Node{Type: model.DEVICE, Id: device.Name}
+	device.me = model.Node{Type: model.DEVICE, Id: device.MacAddr}
 	device.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
 	device.I2c = conf.Interface.I2c
 	device.registered = false
@@ -93,7 +93,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 }
 
 func (device *Device) setMacAddress(name string) {
-	device.Name = ""
+	device.MacAddr = ""
 
 	// Getting list of network interfaces
 	interfaces, err := net.Interfaces()
@@ -105,27 +105,27 @@ func (device *Device) setMacAddress(name string) {
 	if err == nil {
 		for _, i := range interfaces {
 			if strings.ToLower(i.Name) == strings.ToLower(name) {
-				device.Name = i.HardwareAddr.String()
+				device.MacAddr = i.HardwareAddr.String()
 				break
 			}
 		}
 	}
 
 	// If no device match with name we get mac address of first active interface (except loopback)
-	if device.Name == "" && err == nil {
+	if device.MacAddr == "" && err == nil {
 		for _, i := range interfaces {
 			if i.Flags&net.FlagUp == net.FlagUp &&
 				i.Flags&net.FlagBroadcast == net.FlagBroadcast &&
 				i.Flags&net.FlagLoopback != net.FlagLoopback {
-				device.Name = i.HardwareAddr.String()
+				device.MacAddr = i.HardwareAddr.String()
 				break
 			}
 		}
 	}
 
 	// If no device was found setting mac address with a random string
-	if device.Name == "" {
-		device.Name = RandomString(8)
+	if device.MacAddr == "" {
+		device.MacAddr = RandomString(8)
 	}
 }
 
@@ -189,16 +189,21 @@ func (device *Device) Acknowledge(data interface{}) {
 func (device *Device) Accept(data interface{}) {
 	log.Printf("Connection accepted: %s\n", data.(string))
 	device.GetAllGPIOState("")
+}
 
+func (device *Device) Reject(data interface{}) {
+	log.Fatalf("Connection rejected by Command Center by %s\n", data.(string))
 }
 
 func (device *Device) GetInfo(data interface{}) {
 	hostName, _ := os.Hostname()
 
+	client := model.Node{}.SetFromInterface(data)
 	deviceInfo := DeviceInfo{Hostname: hostName, Device: *device}
 
-	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
+	//info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
+	info := model.Message{Action: model.SENDINFO, Data: deviceInfo, Client: client, Server: device.me}
 
-	SendMessage(device, nil, model.BROADCAST, info)
+	SendMessage(device, nil, model.RELAY, info)
 	device.GetAllGPIOState("")
 }

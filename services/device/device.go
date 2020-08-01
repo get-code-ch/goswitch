@@ -30,6 +30,10 @@ func main() {
 	device.Switches = make([]config.I2cSwitch, len(conf.Switches))
 	copy(device.Switches, conf.Switches)
 
+	for idx := range device.Switches {
+		device.Switches[idx].MacAddr = device.MacAddr
+	}
+
 	for idx := range device.Modules {
 
 		device.Modules[idx], err = mcp23008.New(device.I2c, device.Modules[idx].Name, device.Modules[idx].Address, device.Modules[idx].Count, device.Modules[idx].Description)

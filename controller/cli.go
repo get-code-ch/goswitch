@@ -140,7 +140,7 @@ func (cli *Cli) ReceiveInfo(data interface{}) {
 
 	fmt.Printf("\n")
 	for _, swc := range deviceInfo.Device.Switches {
-		fmt.Printf("Name -> %s (%d), GPIO %d - state %d ", swc.Name, swc.Address, swc.Gpio, swc.State)
+		fmt.Printf("MacAddr -> %s (%d), GPIO %d - state %d ", swc.Name, swc.Address, swc.Gpio, swc.State)
 		fmt.Printf("\n")
 	}
 

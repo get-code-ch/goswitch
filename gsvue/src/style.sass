@@ -3,8 +3,27 @@
 $primary-font:  'Montserrat', sans-serif
 $text-color: #4d4d4d
 $primary-color: #005baa
+$disabled-color: #aaaaaa
 $on-color: #044e0b
 $off-color: rgba(224, 16, 16, 0.98)
+$std-btn-height: 20px
+$std-btn-radius: 10px
+$mob-btn-height: 60px
+$mob-btn-radius: 0px
+
+@media only screen and (max-width: 1024px)
+  button
+    width: 100%
+    font-size: large
+  .state-btn
+    height: $mob-btn-height
+    border-radius: $mob-btn-radius
+    margin: 0
+
+  .device-btn
+    height: $mob-btn-height
+    border-radius: $mob-btn-radius
+    margin: 5px
 
 body
   font: 100% $primary-font
@@ -12,14 +31,42 @@ body
   color: $text-color
 
 button
-  font: 100% $primary-font
-  font-size: small
   border-radius: 10px
   border: none
   color: azure
   height: 20px
   background: $primary-color
   outline: none
+
+div
+  display: grid
+
+.device-btn
+  background: azure
+  color: $primary-color
+  border: 1px solid $primary-color
+  &:disabled
+    background: $disabled-color
+    border: 1px solid $disabled-color
+    color: azure
+
+
+.device-list ul
+  padding: 0
+  margin: 0
+  list-style-type: none
+
+.device-list li
+  margin-right: 15px
+  float: left
+
+
+.selected
+  background: $primary-color
+  color: azure
+
+.state-btn
+  border:  none
 
 .on
   color: azure
@@ -28,7 +75,6 @@ button
 .off
   color: azure
   background: $off-color
-
 
 .state
   font: 100% $primary-font
@@ -46,3 +92,4 @@ button
 
 .disconnected
   background-color: $off-color
+

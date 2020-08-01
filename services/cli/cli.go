@@ -84,7 +84,7 @@ func main() {
 		/*
 			if getXxxRE.MatchString(input) {
 				device := getXxxRE.FindStringSubmatch(input)[2]
-				data := model.Message{Action: model.xxx, Client: model.Node{Type: model.DEVICE, Id: device}, Data: model.Node{Type: model.CLI, Id: cli.Name}}
+				data := model.Message{Action: model.xxx, Client: model.Node{Type: model.DEVICE, Id: device}, Data: model.Node{Type: model.CLI, Id: cli.MacAddr}}
 				controller.SendMessage(cli, nil, model.RELAY, data)
 				continue
 			}

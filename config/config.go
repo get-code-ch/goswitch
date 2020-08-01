@@ -11,6 +11,7 @@ const defaultControllerConfigFile = "./config/commctr.json"
 type ConfDevice struct {
 	Controller ConfCommCtr         `json:"controller"`
 	Interface  ConfInterface       `json:"interface"`
+	Name       string              `json:"name"`
 	Modules    []mcp23008.Mcp23008 `json:"modules"`
 	Switches   []I2cSwitch         `json:"switches"`
 }
@@ -21,15 +22,24 @@ type ConfCli struct {
 }
 
 type ConfCommCtr struct {
-	ApiKey     string          `json:"api_key"`
-	Server     string          `json:"server"`
-	Port       string          `json:"port"`
-	Ssl        bool            `json:"ssl"`
-	Cert       ConfCertificate `json:"cert,omitempty"`
-	ClientRoot string          `json:"client_root"`
+	ApiKey            string             `json:"api_key"`
+	Server            string             `json:"server"`
+	Port              string             `json:"port"`
+	Ssl               bool               `json:"ssl"`
+	Cert              ConfCertificate    `json:"cert,omitempty"`
+	ClientRoot        string             `json:"client_root"`
+	AuthorizedDevices []AuthorizedDevice `json:"authorized_devices"`
+}
+
+type AuthorizedDevice struct {
+	ApiKey   string `json:"api_key"`
+	Name     string `json:"name"`
+	MacAddr  string `json:"mac_addr"`
+	IsOnline bool   `json:"is_online"`
 }
 
 type I2cSwitch struct {
+	MacAddr string `json:"mac_addr"`
 	Address int    `json:"address"`
 	Gpio    int    `json:"gpio"`
 	Name    string `json:"name"`

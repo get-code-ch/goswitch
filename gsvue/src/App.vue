@@ -1,41 +1,45 @@
 <template>
-    <div v-if="devices != null">
-        <div>
-            <p v-for="device in devices" :key="device.Id">
-                <button @click="deviceInfo(device)">{{ device }}</button>
-            </p>
-        </div>
-    </div>
 
-    <div v-if="switches != null">
-        Selected device: {{deviceId}}
-        <div>
-            <p v-for="swc in switches" :key="swc.name">
-                <button class="btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']" @click="toggleGpio(deviceId, swc.address, swc.gpio)">{{swc.name}}</button>
-            </p>
-        </div>
+  <div>
+    <p class="state" v-bind:class="connected">{{ connected }} {{ status }}</p>
+  </div>
+
+  <div v-if="devices != null">
+    <div class="device-list">
+      <ul>
+        <li v-for="device in devices" :key="device.mac_addr">
+          <button :disabled="!device.is_online" class="device-btn" v-bind:class="[device.mac_addr == deviceId ? 'selected' : '']" @click="deviceInfo(device.mac_addr)">
+            {{ device.name }}
+          </button>
+        </li>
+      </ul>
     </div>
+  </div>
+
+  <div v-if="switches != null">
     <div>
-        <p>status: {{status}}</p>
-        <p class="state" v-bind:class="connected">{{connected}}</p>
-
-<!--        <p>msg: {{msg}}</p>-->
+      <p v-for="swc in switches" :key="swc.name">
+        <button class="state-btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']" @click="toggleGpio(deviceId, swc.address, swc.gpio)">
+          {{ swc.name }}
+        </button>
+      </p>
     </div>
+  </div>
 
 </template>
 <script>
-    import useController from "./use/controller";
-    import {onMounted} from "vue"
+import useController from "./use/controller";
+import {onMounted} from "vue"
 
-    export default {
-        setup() {
-            onMounted(() => {
-                newConnection();
-                console.log("Mounted");
-            })
+export default {
+  setup() {
+    onMounted(() => {
+      newConnection();
+      console.log("Mounted");
+    })
 
-            const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected } = useController();
-            return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
-        }
-    };
+    const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected} = useController();
+    return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
+  }
+};
 </script>

@@ -23,6 +23,7 @@ const (
 	SETGPIO     Action = "SetGPIO"
 	GETGPIO     Action = "GetGPIO"
 	GPIOSTATE   Action = "GPIOState"
+	REJECT      Action = "Reject"
 )
 
 type Message struct {

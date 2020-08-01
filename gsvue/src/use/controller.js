@@ -39,6 +39,7 @@ export default function useController() {
             switch (obj.action.toLowerCase()) {
                 case "accept":
                     controller.status = "Server->" + obj.server.Id;
+                    browserNotify("Connection accepted");
                     connection.send(JSON.stringify({
                         "client": client,
                         "action": "List",
@@ -55,7 +56,7 @@ export default function useController() {
                     controller.msg = obj.data;
                     if (controller.switches != null) {
                         controller.switches.forEach(swc => {
-                            if (swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
+                            if (swc.mac_addr == obj.data.mac_addr && swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
                                 swc.state = obj.data.state;
                             }
                         });
@@ -110,7 +111,6 @@ export default function useController() {
         controller.devices = null;
         controller.switches = null;
         setTimeout(() =>{
-            browserNotify("Trying to connect Command Center");
             newConnection();
         }, 5000);
     }
@@ -135,7 +135,7 @@ export default function useController() {
         let device = {"Type": "device", "Id": deviceId};
 
         let i2c = {"command":"reverse", "id": deviceId, "address": "" + address, "gpio": "" + gpio};
-        let data = {"Action": "SetGPIO", "client": device, "data": i2c};
+        let data = {"Action": "SetGPIO", "client": device, "data": {"i2c": i2c, "client": client}};
 
         connection.send(JSON.stringify({
             "action": "Relay",
@@ -162,14 +162,16 @@ export default function useController() {
         if (port == 8080) {
             port = "4433";
         }
-        return protocol.toLowerCase() == "https" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";
+        return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";
 
     }
 
     function browserNotify(msg) {
         // eslint-disable-next-line
         let notification = null;
-        if (!("Notification" in window)) {
+        let isMobile = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini)/i)
+
+         if (!("Notification" in window) || isMobile) {
             return ;
         }
 
