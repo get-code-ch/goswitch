@@ -161,9 +161,13 @@ func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action
 
 func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, client model.Node) {
 	d := data.(map[string]interface{})
+	key := d["api_key"]
+	nIfg := d["client"].(map[string]interface{})
+
 	node := new(model.Node)
-	node.Id = d["Id"].(string)
-	node.Type = model.NodeType(d["Type"].(string))
+
+	node.Id = nIfg["Id"].(string)
+	node.Type = model.NodeType(nIfg["Type"].(string))
 
 	switch node.Type {
 	case model.BROWSER, model.CLI:
@@ -171,7 +175,7 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 		SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 	case model.DEVICE:
 		for dIdx, d := range commCtr.authorizedDevices {
-			if d.MacAddr == node.Id {
+			if d.MacAddr == node.Id && d.ApiKey == key {
 				commCtr.authorizedDevices[dIdx].IsOnline = true
 				commCtr.devices[node.Id] = conn
 				for _, c := range commCtr.clients {

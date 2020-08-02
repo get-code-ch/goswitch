@@ -3,8 +3,8 @@ import {reactive, toRefs} from "vue";
 export default function useController() {
 
     let connection;
-    let id = makeId(5);
     let client;
+    let api_key;
 
     const controller = reactive({
         msg:"",
@@ -15,9 +15,18 @@ export default function useController() {
         connected: false
     })
 
+    function genApiKey() {
+        let key = makeId(30);
+        let clientId = "vue-" + makeId(5);
+        localStorage.setItem("api_key", key);
+        localStorage.setItem("client_id", clientId);
+    }
+
     function newConnection() {
         let obj;
-        client = {"Type": "browser", "Id": "vue-" + id};
+        api_key = localStorage.getItem("api_key");
+        // client = {"Type": "browser", "Id": "vue-" + id};
+        client = {"Type": "browser", "Id": localStorage.getItem("client_id")};
         connection = new WebSocket(genWsUrl());
 
         connection.onerror = function (event) {
@@ -82,7 +91,7 @@ export default function useController() {
                         "client": client,
                         "action": "Register",
                         "server": obj.server,
-                        "data": client
+                        "data": {"client": client, "api_key": api_key}
                     }));
                     break;
                 default:
@@ -186,6 +195,6 @@ export default function useController() {
         }
     }
 
-    return { ...toRefs(controller), newConnection, deviceInfo, toggleGpio };
+    return { ...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio };
 
 }

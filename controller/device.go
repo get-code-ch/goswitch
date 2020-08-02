@@ -20,6 +20,7 @@ import (
 
 type Device struct {
 	me         model.Node
+	apiKey     string
 	srv        model.Node
 	registered bool
 	upgrader   websocket.Upgrader
@@ -85,6 +86,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 	device.setMacAddress(conf.Interface.Name)
 
 	device.me = model.Node{Type: model.DEVICE, Id: device.MacAddr}
+	device.apiKey = conf.Controller.ApiKey
 	device.srv = model.Node{Type: model.SERVER, Id: "CommCtr"}
 	device.I2c = conf.Interface.I2c
 	device.registered = false
@@ -172,8 +174,12 @@ func (device *Device) Invoke(function model.Action, data interface{}) {
 }
 
 func (device *Device) Register(data interface{}) {
+	arguments := make(map[string]interface{})
+	arguments["client"] = device.me
+	arguments["api_key"] = device.apiKey
+
 	if !device.registered {
-		SendMessage(device, nil, model.REGISTER, device.me)
+		SendMessage(device, nil, model.REGISTER, arguments)
 	} else {
 		SendMessage(device, nil, model.RECONNECT, device.me)
 	}

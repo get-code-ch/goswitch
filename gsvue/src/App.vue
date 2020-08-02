@@ -34,11 +34,13 @@ import {onMounted} from "vue"
 export default {
   setup() {
     onMounted(() => {
+      if (localStorage.getItem("api_key") == null) {
+        genApiKey();
+      }
       newConnection();
-      console.log("Mounted");
     })
 
-    const {newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected} = useController();
+    const {genApiKey, newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected} = useController();
     return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
   }
 };
