@@ -6,24 +6,19 @@ $primary-color: #005baa
 $disabled-color: #aaaaaa
 $on-color: #044e0b
 $off-color: rgba(224, 16, 16, 0.98)
-$std-btn-height: 20px
-$std-btn-radius: 10px
+$std-btn-height: 60px
+$std-btn-radius: 0px
 $mob-btn-height: 60px
 $mob-btn-radius: 0px
 
-@media only screen and (max-width: 1024px)
+@media only screen and (max-width: 600px)
   button
     width: 100%
-    font-size: large
-  .state-btn
-    height: $mob-btn-height
-    border-radius: $mob-btn-radius
-    margin: 0
 
-  .device-btn
+  .device-btn, .state-btn
+    width: 100%
     height: $mob-btn-height
     border-radius: $mob-btn-radius
-    margin: 5px
 
 body
   font: 100% $primary-font
@@ -31,10 +26,12 @@ body
   color: $text-color
 
 button
-  border-radius: 10px
+  border-radius: $std-btn-radius
+  height: $std-btn-height
+  font-size: large
+  width: 600px
   border: none
   color: azure
-  height: 20px
   background: $primary-color
   outline: none
 
@@ -45,28 +42,31 @@ div
   background: azure
   color: $primary-color
   border: 1px solid $primary-color
+  margin: 2px
   &:disabled
     background: $disabled-color
     border: 1px solid $disabled-color
     color: azure
 
+.state-btn
+  border:  none
+  margin-bottom: 2px
+  height: $std-btn-height
+  border-radius: $std-btn-radius
 
-.device-list ul
-  padding: 0
-  margin: 0
+
+.device-list ul, .state-btn-list ul
   list-style-type: none
 
 .device-list li
-  margin-right: 15px
   float: left
 
+.state-btn-list li
+  float: none
 
 .selected
   background: $primary-color
   color: azure
-
-.state-btn
-  border:  none
 
 .on
   color: azure
@@ -78,6 +78,7 @@ div
 
 .state
   font: 100% $primary-font
+  padding: 5px
   text-decoration: none
   color: azure
   font-size: small
@@ -85,11 +86,9 @@ div
   border: none
   outline: none
   width: fit-content
-  padding: 5px 8px
 
 .connected
   background-color: $on-color
 
 .disconnected
   background-color: $off-color
-

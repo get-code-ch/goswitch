@@ -8,7 +8,8 @@
     <div class="device-list">
       <ul>
         <li v-for="device in devices" :key="device.mac_addr">
-          <button :disabled="!device.is_online" class="device-btn" v-bind:class="[device.mac_addr == deviceId ? 'selected' : '']" @click="deviceInfo(device.mac_addr)">
+          <button :disabled="!device.is_online" class="device-btn"
+                  v-bind:class="[device.mac_addr == deviceId ? 'selected' : '']" @click="deviceInfo(device.mac_addr)">
             {{ device.name }}
           </button>
         </li>
@@ -17,12 +18,15 @@
   </div>
 
   <div v-if="switches != null">
-    <div>
-      <p v-for="swc in switches" :key="swc.name">
-        <button class="state-btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']" @click="toggleGpio(deviceId, swc.address, swc.gpio)">
-          {{ swc.name }}
-        </button>
-      </p>
+    <div class="state-btn-list">
+      <ul>
+        <li v-for="swc in switches" :key="swc.name">
+          <button class="state-btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']"
+                  @click="toggleGpio(deviceId, swc.address, swc.gpio)">
+            {{ swc.name }}
+          </button>
+        </li>
+      </ul>
     </div>
   </div>
 

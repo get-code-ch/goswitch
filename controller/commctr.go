@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"time"
 )
 
 type CommandCenter struct {
@@ -97,9 +98,26 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 	err = conn.ReadJSON(&msg)
 	commCtr.Invoke(conn, msg.Action, msg.Data, msg.Client)
 
+	// Sending a acknowledge message to client every minutes
+	ticker := time.NewTicker(1 * time.Minute)
+	go func() {
+		log.Printf("Timer started")
+		for {
+			select {
+			case <-ticker.C:
+				{
+					log.Printf("Sending Acknoledge to %v", conn)
+					SendMessage(commCtr, conn, model.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
+				}
+			}
+		}
+	}()
+
 	for {
 		err := conn.ReadJSON(&msg)
 		if err != nil {
+			ticker.Stop()
+			ticker = nil
 			log.Printf("ERROR reading serveWs --> %v", err)
 			// Removing device or client/browser from list
 			for key, value := range commCtr.clients {

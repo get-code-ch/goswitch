@@ -67,14 +67,14 @@ func (device *Device) SetGPIO(data interface{}) {
 					log.Printf("Module %s switch %d Reversed\n", device.Modules[idx].Name, gpio)
 					action = -1
 				}
-				for _, swc := range device.Switches {
+				for iSwc, swc := range device.Switches {
 					if swc.Address == device.Modules[idx].Address && swc.Gpio == gpio {
 						if action == -1 {
 							swc.State = int(math.Abs(float64(swc.State + action)))
 						} else {
 							swc.State = action
 						}
-						swc.MacAddr = device.MacAddr
+						device.Switches[iSwc].State = swc.State
 						msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}.SetFromInterface(request["client"]), Server: device.me}
 						SendMessage(device, nil, model.BROADCAST, msg)
 						break
