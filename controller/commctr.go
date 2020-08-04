@@ -106,7 +106,7 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-ticker.C:
 				{
-					log.Printf("Sending Acknoledge to %v", conn)
+					//log.Printf("Sending Acknoledge to %v", conn)
 					SendMessage(commCtr, conn, model.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
 				}
 			}
