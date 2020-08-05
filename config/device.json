@@ -1,7 +1,7 @@
 {
   "controller": {
     "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
-    "server": "192.168.10.62",
+    "server": "localhost",
     "port": "4433",
     "ssl": false
   },
@@ -9,21 +9,33 @@
     "i2c": "/dev/i2c-0",
     "name": "Ethernet"
   },
-
-  "switches":[
-    {"address": 32, "gpio": 0, "name": "Fake", "state": 0},
-    {"address": 32, "gpio": 1, "name": "Blue", "state": 0},
-    {"address": 32, "gpio": 7, "name": "Relay", "state": 0}
-  ],
-
-
-  "modules": [
+  "switches": [
     {
+      "address": 32,
+      "gpio": 0,
+      "name": "Fake",
+      "state": 0
+    },
+    {
+      "address": 32,
+      "gpio": 1,
+      "name": "Blue",
+      "state": 0
+    },
+    {
+      "address": 32,
+      "gpio": 7,
+      "name": "Relay",
+      "state": 0
+    }
+  ],
+  "modules": {
+    "32": {
       "name": "M1",
       "address": 32,
-      "count": 2,
+      "count": 3,
       "description": "Expansion relay module 2 0x20"
     }
-  ]
-
+  }
 }
+

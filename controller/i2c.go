@@ -31,54 +31,50 @@ func (device *Device) SetGPIO(data interface{}) {
 		gpio = -1
 	}
 
-	for idx := range device.Modules {
-		if device.Modules[idx].Address == address && gpio > -1 {
-			//			log.Printf("Module address-> %d / Address-> %d\n", device.Modules[idx].Address, address)
-			//			log.Printf("Switch-> %d\n", byte(gpio))
-			if device.I2cMode == model.REAL {
-				switch strings.ToLower(command) {
-				case "off":
-					mcp23008.GpioOff(&device.Modules[idx], byte(gpio))
-				case "on":
-					mcp23008.GpioOn(&device.Modules[idx], byte(gpio))
-				case "reverse":
-					mcp23008.GpioReverse(&device.Modules[idx], byte(gpio))
+	if module, ok := device.Modules[address]; ok {
+		if device.I2cMode == model.REAL {
+			switch strings.ToLower(command) {
+			case "off":
+				mcp23008.GpioOff(&module, byte(gpio))
+			case "on":
+				mcp23008.GpioOn(&module, byte(gpio))
+			case "reverse":
+				mcp23008.GpioReverse(&module, byte(gpio))
+			}
+			state := device.readGPIO(&module, gpio)
+			for _, swc := range device.Switches {
+				if swc.Address == module.Address && swc.Gpio == gpio {
+					swc.State = state
+					swc.MacAddr = device.MacAddr
+					msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}.SetFromInterface(request["client"]), Server: device.me}
+					SendMessage(device, nil, model.BROADCAST, msg)
+					break
 				}
-				state := device.readGPIO(&device.Modules[idx], gpio)
-				for _, swc := range device.Switches {
-					if swc.Address == device.Modules[idx].Address && swc.Gpio == gpio {
-						swc.State = state
-						swc.MacAddr = device.MacAddr
-						msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}.SetFromInterface(request["client"]), Server: device.me}
-						SendMessage(device, nil, model.BROADCAST, msg)
-						break
+			}
+		} else {
+			action := 0
+			switch command {
+			case "off":
+				log.Printf("Module %s switch %d switched Off\n", module.Name, gpio)
+				action = 0
+			case "on":
+				log.Printf("Module %s switch %d switched On\n", module.Name, gpio)
+				action = 1
+			case "reverse":
+				log.Printf("Module %s switch %d Reversed\n", module.Name, gpio)
+				action = -1
+			}
+			for iSwc, swc := range device.Switches {
+				if swc.Address == module.Address && swc.Gpio == gpio {
+					if action == -1 {
+						swc.State = int(math.Abs(float64(swc.State + action)))
+					} else {
+						swc.State = action
 					}
-				}
-			} else {
-				action := 0
-				switch command {
-				case "off":
-					log.Printf("Module %s switch %d switched Off\n", device.Modules[idx].Name, gpio)
-					action = 0
-				case "on":
-					log.Printf("Module %s switch %d switched On\n", device.Modules[idx].Name, gpio)
-					action = 1
-				case "reverse":
-					log.Printf("Module %s switch %d Reversed\n", device.Modules[idx].Name, gpio)
-					action = -1
-				}
-				for iSwc, swc := range device.Switches {
-					if swc.Address == device.Modules[idx].Address && swc.Gpio == gpio {
-						if action == -1 {
-							swc.State = int(math.Abs(float64(swc.State + action)))
-						} else {
-							swc.State = action
-						}
-						device.Switches[iSwc].State = swc.State
-						msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}.SetFromInterface(request["client"]), Server: device.me}
-						SendMessage(device, nil, model.BROADCAST, msg)
-						break
-					}
+					device.Switches[iSwc].State = swc.State
+					msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}.SetFromInterface(request["client"]), Server: device.me}
+					SendMessage(device, nil, model.BROADCAST, msg)
+					break
 				}
 			}
 		}
@@ -88,18 +84,20 @@ func (device *Device) SetGPIO(data interface{}) {
 func (device *Device) GetAllGPIOState(data interface{}) {
 
 	for _, swc := range device.Switches {
-		for _, module := range device.Modules {
-			if module.Address == swc.Address {
-				if device.I2cMode == model.REAL {
-					swc.State = int(mcp23008.ReadGpio(&module, byte(swc.Gpio)))
-					swc.MacAddr = device.MacAddr
-					msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
-					SendMessage(device, nil, model.BROADCAST, msg)
-				} else {
-					log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, swc.Address, swc.Gpio, swc.State)
-				}
+		//		for _, module := range device.Modules {
+		//			if module.Address == swc.Address {
+		if module, ok := device.Modules[swc.Address]; ok {
+			if device.I2cMode == model.REAL {
+				swc.State = int(mcp23008.ReadGpio(&module, byte(swc.Gpio)))
+				swc.MacAddr = device.MacAddr
+				msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{Id: "", Type: model.CLI}, Server: device.me}
+				SendMessage(device, nil, model.BROADCAST, msg)
+			} else {
+				//					log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, swc.Address, swc.Gpio, swc.State)
+				log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, swc.Address, swc.Gpio, swc.State)
 			}
 		}
+		//		}
 	}
 }
 

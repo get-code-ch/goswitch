@@ -7,4 +7,5 @@ replace github.com/get-code-ch/mcp23008 => D:/projects/mcp23008
 require (
 	github.com/get-code-ch/mcp23008 v0.0.0-20171102071812-93bf472ffedc
 	github.com/gorilla/websocket v1.4.2
+	golang.org/x/exp v0.0.0-20200513190911-00229845015e // indirect
 )

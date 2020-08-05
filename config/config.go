@@ -1,3 +1,4 @@
+// Package config provide tools to load configuration of devices and command center.
 package config
 
 import (
@@ -9,11 +10,11 @@ const defaultCliConfigFile = "./config/cli.json"
 const defaultControllerConfigFile = "./config/commctr.json"
 
 type ConfDevice struct {
-	Controller ConfCommCtr         `json:"controller"`
-	Interface  ConfInterface       `json:"interface"`
-	Name       string              `json:"name"`
-	Modules    []mcp23008.Mcp23008 `json:"modules"`
-	Switches   []I2cSwitch         `json:"switches"`
+	Controller ConfCommCtr               `json:"controller"`
+	Interface  ConfInterface             `json:"interface"`
+	Name       string                    `json:"name"`
+	Modules    map[int]mcp23008.Mcp23008 `json:"modules"`
+	Switches   []I2cSwitch               `json:"switches"`
 }
 
 type ConfCli struct {

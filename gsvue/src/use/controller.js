@@ -168,7 +168,7 @@ export default function useController() {
         let protocol = location.protocol
         let port = location.port;
 
-        if (port == 8080) {
+        if (port == 8081) {
             port = "4433";
         }
         return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";

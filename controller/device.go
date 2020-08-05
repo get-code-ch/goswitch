@@ -30,8 +30,8 @@ type Device struct {
 	MacAddr    string
 	I2c        string
 	I2cMode    model.I2cMode
-	Modules    []mcp23008.Mcp23008
-	Switches   []config.I2cSwitch `json:"switches"`
+	Modules    map[int]mcp23008.Mcp23008 `json:"modules"`
+	Switches   []config.I2cSwitch        `json:"switches"`
 }
 
 func (device Device) SetFromInterface(data interface{}) Device {
