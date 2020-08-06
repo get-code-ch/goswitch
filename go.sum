@@ -2,6 +2,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/get-code-ch/mcp23008 v0.0.0-20171102071812-93bf472ffedc h1:58tiqlKaMqaXGyW71S/F4RrxQX6jzLkaYB2ngjGKmdM=
 github.com/get-code-ch/mcp23008 v0.0.0-20171102071812-93bf472ffedc/go.mod h1:qQxEALQpfoldmvZJBIrp0l0w4OP8fkLAYPwUbFZg+3E=
+github.com/get-code-ch/mcp23008/v2 v2.0.2 h1:MS7NhIOQEXJl/RYAWyPluyAqpl//y8oux4n72gZptNE=
+github.com/get-code-ch/mcp23008/v2 v2.0.2/go.mod h1:01Mc8BVP9wUF8qFowsIMXg5Gw1Bgtn/gIjtz5HRk7x4=
 github.com/go-gl/glfw/v3.3/glfw v0.0.0-20200222043503-6f7a984d4dc4/go.mod h1:tQ2UAYgL5IevRw8kRxooKSPJfGvJ9fJQFa0TUsXzTg8=
 github.com/gorilla/websocket v1.4.2 h1:+/TMaTYc4QFitKJxsQ7Yye35DkWvkdLcvGKqM+x0Ufc=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=

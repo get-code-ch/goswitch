@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/get-code-ch/mcp23008"
+	"github.com/get-code-ch/mcp23008/v2"
 	"goswitch/model"
 	"log"
 	"math"
