@@ -1,10 +1,10 @@
 package main
 
 import (
+	"github.com/get-code-ch/goswitch/config"
+	"github.com/get-code-ch/goswitch/controller"
+	"github.com/get-code-ch/goswitch/model"
 	"github.com/get-code-ch/mcp23008/v2"
-	"goswitch/config"
-	"goswitch/controller"
-	"goswitch/model"
 	"log"
 	"os"
 )

@@ -1,5 +1,4 @@
 <template>
-
   <div>
     <p class="state" v-bind:class="connected">{{ connected }} {{ status }}</p>
   </div>
@@ -38,6 +37,7 @@ import {onMounted} from "vue"
 export default {
   setup() {
     onMounted(() => {
+      navigator.serviceWorker.register()
       if (localStorage.getItem("api_key") == null) {
         genApiKey();
       }
