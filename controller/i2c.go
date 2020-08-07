@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"github.com/get-code-ch/goswitch/model"
 	"github.com/get-code-ch/mcp23008/v2"
-	"goswitch/model"
 	"log"
 	"math"
 	"strconv"

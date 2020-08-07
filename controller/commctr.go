@@ -3,9 +3,9 @@ package controller
 import (
 	"flag"
 	"fmt"
+	"github.com/get-code-ch/goswitch/config"
+	"github.com/get-code-ch/goswitch/model"
 	"github.com/gorilla/websocket"
-	"goswitch/config"
-	"goswitch/model"
 	"log"
 	"net/http"
 	"reflect"

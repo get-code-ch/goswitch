@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"github.com/get-code-ch/goswitch/model"
 	"github.com/gorilla/websocket"
-	"goswitch/model"
 	"math/rand"
 	"strings"
 	"time"

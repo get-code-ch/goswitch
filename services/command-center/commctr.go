@@ -1,8 +1,8 @@
 package main
 
 import (
-	"goswitch/config"
-	"goswitch/controller"
+	"github.com/get-code-ch/goswitch/config"
+	"github.com/get-code-ch/goswitch/controller"
 	"log"
 	"os"
 )
