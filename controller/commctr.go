@@ -25,6 +25,7 @@ type CommandCenter struct {
 	port              string
 	clientRoot        string
 	authorizedDevices []config.AuthorizedDevice
+	corsOrigin        bool
 }
 
 func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
@@ -40,6 +41,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.port = conf.Port
 	commCtr.clientRoot = conf.ClientRoot
 	commCtr.authorizedDevices = conf.AuthorizedDevices
+	commCtr.corsOrigin = conf.CorsOrigin
 
 	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
 
@@ -82,7 +84,7 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 
 	// For development we allow CORS
 	commCtr.upgrader.CheckOrigin = func(r *http.Request) bool {
-		return true
+		return commCtr.corsOrigin
 	}
 
 	conn, err = commCtr.upgrader.Upgrade(w, r, header)
@@ -189,11 +191,26 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 
 	switch node.Type {
 	case model.BROWSER, model.CLI:
+		// We accept only one connection from client/browser
+		if _, exist := commCtr.clients[node.Id]; exist {
+			SendMessage(commCtr, conn, model.REJECT, "Other session is already open in your browser")
+			//conn.Close()
+			//commCtr.clients[node.Id].Close()
+			//delete(commCtr.clients,node.Id)
+			return
+		}
+
 		commCtr.clients[node.Id] = conn
 		SendMessage(commCtr, conn, model.ACCEPT, node.Id)
 	case model.DEVICE:
 		for dIdx, d := range commCtr.authorizedDevices {
 			if d.MacAddr == node.Id && d.ApiKey == key {
+
+				if _, exist := commCtr.devices[node.Id]; exist {
+					commCtr.devices[node.Id].Close()
+					delete(commCtr.devices, node.Id)
+				}
+
 				commCtr.authorizedDevices[dIdx].IsOnline = true
 				commCtr.devices[node.Id] = conn
 				for _, c := range commCtr.clients {

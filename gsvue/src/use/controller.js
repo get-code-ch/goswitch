@@ -5,6 +5,7 @@ export default function useController() {
     let connection;
     let client;
     let api_key;
+    let reject = false;
 
     const controller = reactive({
         msg:"",
@@ -47,6 +48,7 @@ export default function useController() {
             obj = JSON.parse(event.data);
             switch (obj.action.toLowerCase()) {
                 case "accept":
+                    reject = false;
                     controller.status = "Server->" + obj.server.Id;
                     browserNotify("Connection accepted");
                     connection.send(JSON.stringify({
@@ -56,8 +58,18 @@ export default function useController() {
                         "data": ""
                     }))
                     break;
+                case "reject":
+                    reject = true;
+                    controller.status = "Rejected " + obj.data;
+                    controller.msg = obj.data;
+                    connection.close();
+                    break;
                 case "acknowledge":
                     controller.status = "Acknowledgment";
+                    controller.msg = obj.data;
+                    break;
+                case "error":
+                    controller.status = "Error:" + obj.data;
                     controller.msg = obj.data;
                     break;
                 case "gpiostate":
@@ -114,14 +126,18 @@ export default function useController() {
     }
 
     function connectionOnClose(event) {
-        console.log("Socket is closed, Reconnect in 5 seconds -> ", event.data);
         controller.connected = 'disconnected';
         connection = null;
         controller.devices = null;
         controller.switches = null;
-        setTimeout(() =>{
-            newConnection();
-        }, 5000);
+        if (!reject) {
+            console.log("Socket is closed, Reconnect in 5 seconds -> ", event.data);
+            setTimeout(() =>{
+                newConnection();
+            }, 5000);
+        } else {
+            console.log("Connection rejected by CommandCenter, do nothing");
+        }
     }
 
     function deviceInfo(deviceId) {
@@ -168,7 +184,7 @@ export default function useController() {
         let protocol = location.protocol
         let port = location.port;
 
-        if (port == 8081) {
+        if (port == 8081 || port == 8080) {
             port = "4433";
         }
         return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";

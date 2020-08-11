@@ -30,6 +30,7 @@ type ConfCommCtr struct {
 	Cert              ConfCertificate    `json:"cert,omitempty"`
 	ClientRoot        string             `json:"client_root"`
 	AuthorizedDevices []AuthorizedDevice `json:"authorized_devices"`
+	CorsOrigin        bool               `json:"cors_origin"`
 }
 
 type AuthorizedDevice struct {

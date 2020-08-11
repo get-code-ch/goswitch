@@ -37,7 +37,7 @@ import {onMounted} from "vue"
 export default {
   setup() {
     onMounted(() => {
-      navigator.serviceWorker.register()
+      //navigator.serviceWorker.register()
       if (localStorage.getItem("api_key") == null) {
         genApiKey();
       }
