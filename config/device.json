@@ -14,19 +14,22 @@
       "address": 32,
       "gpio": 0,
       "name": "Fake",
-      "state": 0
+      "state": 0,
+      "push_mode": true
     },
     {
       "address": 32,
       "gpio": 1,
       "name": "Blue",
-      "state": 0
+      "state": 0,
+      "push_mode": false
     },
     {
       "address": 32,
       "gpio": 7,
       "name": "Relay",
-      "state": 0
+      "state": 0,
+      "push_mode": false
     }
   ],
   "modules": {

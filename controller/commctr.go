@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"regexp"
 	"time"
 )
 
@@ -84,7 +85,22 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 
 	// For development we allow CORS
 	commCtr.upgrader.CheckOrigin = func(r *http.Request) bool {
-		return commCtr.corsOrigin
+		re := regexp.MustCompile(`(?i)(?:[http|ws][s]?:\/\/)([^/]*)`)
+		rHost := re.FindStringSubmatch(r.Header.Get("origin"))
+		log.Printf("Origin: %s\n", r.Header.Get("origin"))
+		log.Printf("Server -> %s:%s\n", commCtr.server, commCtr.port)
+		if len(rHost) != 2 {
+			return false
+		}
+		if commCtr.corsOrigin {
+			if commCtr.server+":"+commCtr.port == rHost[1] {
+				return true
+			} else {
+				return false
+			}
+		} else {
+			return true
+		}
 	}
 
 	conn, err = commCtr.upgrader.Upgrade(w, r, header)
@@ -194,9 +210,6 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 		// We accept only one connection from client/browser
 		if _, exist := commCtr.clients[node.Id]; exist {
 			SendMessage(commCtr, conn, model.REJECT, "Other session is already open in your browser")
-			//conn.Close()
-			//commCtr.clients[node.Id].Close()
-			//delete(commCtr.clients,node.Id)
 			return
 		}
 

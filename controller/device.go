@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -46,6 +47,8 @@ type DeviceInfo struct {
 	Device   Device `json:"device"`
 }
 
+var header = http.Header{}
+
 func (deviceInfo DeviceInfo) SetFromInterface(data interface{}) DeviceInfo {
 	marshal, _ := json.Marshal(data)
 	converted := DeviceInfo{}
@@ -65,7 +68,9 @@ func NewDevice(conf *config.ConfDevice) *Device {
 	} else {
 		device.url = url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
 	}
-	device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
+
+	header.Set("Origin", device.url.String())
+	device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), header)
 	if err != nil {
 		count := 0
 		log.Printf("Dial error -> %v", err)
@@ -73,7 +78,7 @@ func NewDevice(conf *config.ConfDevice) *Device {
 		device.conn = nil
 		for {
 			time.Sleep(5 * time.Second)
-			device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
+			device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), header)
 			if err == nil {
 				break
 			} else {
@@ -146,7 +151,7 @@ func (device *Device) Listen(channel chan int) {
 			device.conn = nil
 			for {
 				time.Sleep(5 * time.Second)
-				device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), nil)
+				device.conn, _, err = websocket.DefaultDialer.Dial(device.url.String(), header)
 				if err == nil {
 					break
 				} else {
