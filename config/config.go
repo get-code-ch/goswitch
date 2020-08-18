@@ -38,6 +38,7 @@ type AuthorizedDevice struct {
 	Name     string `json:"name"`
 	MacAddr  string `json:"mac_addr"`
 	IsOnline bool   `json:"is_online"`
+	Enabled  bool   `json:"enabled"`
 }
 
 type I2cSwitch struct {

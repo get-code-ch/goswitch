@@ -1,6 +1,6 @@
 {
   "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
-  "server": "localhost",
+  "server": "192.168.10.62",
   "port": "4433",
   "ssl": false,
   "cert": {
@@ -8,7 +8,7 @@
     "ssl_cert": "./ssl/server.crt"
   },
   "client_root": "./gsvue/dist/",
-  "cors_origin": true,
+  "cors_origin": false,
 
   "authorized_devices": [
 
@@ -16,25 +16,29 @@
       "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
       "name": "PiZero01 (Staging)",
       "mac_addr": "b8:27:eb:ec:6c:74",
-      "is_online": false
+      "is_online": false,
+      "enabled": true
     },
     {
       "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
       "name": "Onion (Staging)",
       "mac_addr": "40:a3:6b:c0:9d:f6",
-      "is_online": false
+      "is_online": false,
+      "enabled": false
     },
     {
       "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
       "name": "PRECISION (Staging)",
       "mac_addr": "a4:bb:6d:ad:5e:c4",
-      "is_online": false
+      "is_online": false,
+      "enabled": false
     },
     {
       "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
       "name": "TDH (Staging)",
       "mac_addr": "e4:b9:7a:52:c3:90",
-      "is_online": false
+      "is_online": false,
+      "enabled": false
     }
   ]
 

@@ -41,9 +41,15 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
 	commCtr.clientRoot = conf.ClientRoot
-	commCtr.authorizedDevices = conf.AuthorizedDevices
-	commCtr.corsOrigin = conf.CorsOrigin
+	commCtr.authorizedDevices = []config.AuthorizedDevice{}
 
+	for _, authDevice := range conf.AuthorizedDevices {
+		if authDevice.Enabled {
+			commCtr.authorizedDevices = append(commCtr.authorizedDevices, authDevice)
+		}
+	}
+
+	commCtr.corsOrigin = conf.CorsOrigin
 	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
 
 	return commCtr

@@ -143,6 +143,33 @@ func (device *Device) Send(conn *websocket.Conn, action model.Action, data inter
 func (device *Device) Listen(channel chan int) {
 	msg := new(model.Message)
 	count := 0
+	interrupt := make(chan byte)
+
+	// TODO: Browsing device.Modules....
+	module := device.Modules[32]
+	go mcp23008.RegisterInterrupt(&module, interrupt)
+	err := mcp23008.GpioSetRead(&module, 0)
+	if err != nil {
+		log.Printf("Error set gpio Read %s", err.Error())
+	}
+
+	go func() {
+		for {
+			gpio := int(<-interrupt)
+			log.Printf("Interrupt occurs on %d\n", gpio)
+			state := device.readGPIO(&module, gpio)
+			for _, swc := range device.Switches {
+				if swc.Address == module.Address && swc.Gpio == gpio {
+					swc.State = state
+					swc.MacAddr = device.MacAddr
+					msg := model.Message{Action: model.GPIOSTATE, Data: swc, Client: model.Node{}, Server: device.me}
+					SendMessage(device, nil, model.BROADCAST, msg)
+					break
+				}
+			}
+
+		}
+	}()
 
 	for {
 		err := device.conn.ReadJSON(&msg)
