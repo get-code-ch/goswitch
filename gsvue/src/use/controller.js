@@ -186,6 +186,7 @@ export default function useController() {
 
         if (port == 8081 || port == 8080) {
             port = "4433";
+            host = "precision";
         }
         return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";
 
