@@ -2,7 +2,7 @@
 package config
 
 import (
-	"github.com/get-code-ch/mcp23008/v2"
+	"github.com/get-code-ch/mcp23008/v3"
 )
 
 const defaultDeviceConfigFile = "./config/device.json"

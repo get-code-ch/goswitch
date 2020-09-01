@@ -28,10 +28,14 @@
       </ul>
     </div>
   </div>
+  <div>
+    <graph></graph>
+  </div>
 
 </template>
 <script>
 import useController from "./use/controller";
+import graph from "./components/graph"
 import {onMounted} from "vue"
 
 export default {
@@ -46,6 +50,9 @@ export default {
 
     const {genApiKey, newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected} = useController();
     return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
+  },
+  components: {
+    graph
   }
 };
 </script>

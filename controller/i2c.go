@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/get-code-ch/goswitch/model"
-	"github.com/get-code-ch/mcp23008/v2"
+	"github.com/get-code-ch/mcp23008/v3"
 	"log"
 	"math"
 	"strconv"
@@ -84,8 +84,6 @@ func (device *Device) SetGPIO(data interface{}) {
 func (device *Device) GetAllGPIOState(data interface{}) {
 
 	for _, swc := range device.Switches {
-		//		for _, module := range device.Modules {
-		//			if module.Address == swc.Address {
 		if module, ok := device.Modules[swc.Address]; ok {
 			if device.I2cMode == model.REAL {
 				swc.State = int(mcp23008.ReadGpio(&module, byte(swc.Gpio)))
@@ -97,30 +95,5 @@ func (device *Device) GetAllGPIOState(data interface{}) {
 				log.Printf("Module: %s, Address: %d, GPIO_%d: %d", module.Name, swc.Address, swc.Gpio, swc.State)
 			}
 		}
-		//		}
 	}
-}
-
-func (device *Device) GetGPIO(data interface{}) {
-	/*
-		client := model.Node{}.SetFromInterface(data)
-
-		arguments := data.(map[string]interface{})
-		module := arguments["module"].(string)
-
-		for idx := range device.Modules {
-			if device.Modules[idx].MacAddr == module {
-				if device.I2cMode == model.REAL {
-					for gidx, gpio := range device.Modules[idx].Gpios {
-						gpio = mcp23008.ReadGpio(&device.Modules[idx], byte(gidx))
-
-					}
-					info := model.Message{Action: model.SENDINFO, Data: state, Client: client}
-					SendMessage(device, nil, model.RELAY, info)
-				} else {
-					log.Printf("Module %s switch %d Reversed\n", device.Modules[idx].MacAddr, sw)
-				}
-			}
-		}
-	*/
 }

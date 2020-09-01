@@ -1,12 +1,14 @@
 package main
 
 import (
+	"github.com/get-code-ch/ads1115"
 	"github.com/get-code-ch/goswitch/config"
 	"github.com/get-code-ch/goswitch/controller"
 	"github.com/get-code-ch/goswitch/model"
-	"github.com/get-code-ch/mcp23008/v2"
+	"github.com/get-code-ch/mcp23008/v3"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -45,6 +47,18 @@ func main() {
 			device.I2cMode = model.SIMULATION
 		}
 	}
+
+	go func() {
+		if ads, err := ads1115.New(device.I2c, "", 0x48, ""); err != nil {
+			log.Printf("Error initializing ADS1115 --> %v\n", err)
+		} else {
+			for {
+				v, i, b := ads1115.ReadConversionRegister(&ads)
+				log.Printf("Conversion register value --> [%d] %.4f | %v\n", v, i, b)
+				time.Sleep(2 * time.Second)
+			}
+		}
+	}()
 
 	go device.Listen(receiver)
 	<-receiver

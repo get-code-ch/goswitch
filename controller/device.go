@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/get-code-ch/goswitch/config"
 	"github.com/get-code-ch/goswitch/model"
-	"github.com/get-code-ch/mcp23008/v2"
+	"github.com/get-code-ch/mcp23008/v3"
 	"github.com/gorilla/websocket"
 	"log"
 	"net"
