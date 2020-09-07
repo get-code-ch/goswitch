@@ -29,7 +29,7 @@
     </div>
   </div>
   <div>
-    <graph></graph>
+    <graph v-model:g-props="graphProperties"></graph>
   </div>
 
 </template>
@@ -46,10 +46,11 @@ export default {
         genApiKey();
       }
       newConnection();
+
     })
 
-    const {genApiKey, newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected} = useController();
-    return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected};
+    const {genApiKey, newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected, graphProperties} = useController();
+    return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected, graphProperties };
   },
   components: {
     graph

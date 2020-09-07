@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300&display=swap')
 
-$primary-font:  'Montserrat', sans-serif
+$primary-font: 'Montserrat', sans-serif
 $text-color: #4d4d4d
 $primary-color: #005baa
 $disabled-color: #aaaaaa
@@ -52,13 +52,14 @@ div
   background: azure
   color: $primary-color
   border: 1px solid $primary-color
+
   &:disabled
     background: $disabled-color
     border: 1px solid $primary-color
     color: azure
 
 .state-btn
-  border:  none
+  border: none
   height: $std-btn-height
   border-radius: $std-btn-radius
 
@@ -100,3 +101,12 @@ div
 
 .disconnected
   background-color: $off-color
+
+rect
+  stroke: rgb(82, 85, 86)
+  stroke-width: 1
+
+
+rect.gs-background
+  fill: rgb(232, 239, 239)
+

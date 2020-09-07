@@ -13,7 +13,14 @@ export default function useController() {
         deviceId:"",
         devices: null,
         switches: null,
-        connected: false
+        connected: false,
+        graphProperties: {
+            width: 1000,
+            height: 400,
+            title: "My Graph",
+            data: drawLines(100)
+        }
+
     })
 
     function genApiKey() {
@@ -212,6 +219,16 @@ export default function useController() {
         }
     }
 
-    return { ...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio };
+    function drawLines(count) {
+        let array = [];
+
+        for (let i = 1; i < count; i++) {
+            array.push({"x": i, "y": i*i});
+        }
+        return array
+    }
+
+
+    return { ...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio, drawLines };
 
 }
