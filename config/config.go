@@ -2,6 +2,7 @@
 package config
 
 import (
+	"github.com/get-code-ch/ads1115"
 	"github.com/get-code-ch/mcp23008/v3"
 )
 
@@ -47,6 +48,13 @@ type I2cSwitch struct {
 	Gpio    int    `json:"gpio"`
 	Name    string `json:"name"`
 	State   int    `json:"state"`
+}
+
+type I2cADC struct {
+	MacAddr string      `json:"mac_addr"`
+	Address int         `json:"address"`
+	Name    string      `json:"name"`
+	AIN     ads1115.Mux `json:"mux"`
 }
 
 type ConfCertificate struct {
