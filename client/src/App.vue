@@ -16,26 +16,32 @@
     </div>
   </div>
 
-  <div v-if="switches != null">
+  <!-- Presents endpoints - action or values -->
+  <div v-if="ICs != null">
     <div class="state-btn-list">
       <ul>
-        <li v-for="swc in switches" :key="swc.name">
-          <button class="state-btn" v-bind:class="[swc.state == 0 ? 'off' : 'on']"
-                  @click="toggleGpio(deviceId, swc.address, swc.gpio)">
-            {{ swc.name }}
-          </button>
-        </li>
+        <div v-for="(ic, key) in ICs" :key="ic.address">
+          <li v-for="ep in ic.endPoints" :key="ep.id">
+            <button class="state-btn" v-bind:class="[ep.attributes.state == 0 ? 'off' : 'on']"
+                    @click="btnClick(ic.type, key, ep.id, ep.attributes)">
+              <!-- {{ key }}|{{ ep.id }} - -->{{ ep.name }}
+            </button>
+          </li>
+        </div>
       </ul>
     </div>
   </div>
+
+  <!--
   <div>
     <graph v-model:g-props="graphProperties"></graph>
   </div>
+  -->
 
 </template>
 <script>
 import useController from "./use/controller";
-import graph from "./components/graph"
+//import graph from "./components/graph"
 import {onMounted} from "vue"
 
 export default {
@@ -49,11 +55,22 @@ export default {
 
     })
 
-    const {genApiKey, newConnection, deviceInfo, toggleGpio, msg, status, deviceId, devices, switches, connected, graphProperties} = useController();
-    return {msg, status, deviceId, devices, switches, deviceInfo, toggleGpio, connected, graphProperties };
+    const {genApiKey, newConnection, deviceInfo, toggleGpio, btnClick, msg, status, deviceId, devices, ICs, connected, graphProperties} = useController();
+    return {
+      msg,
+      status,
+      deviceId,
+      devices,
+      ICs,
+      deviceInfo,
+      toggleGpio,
+      btnClick,
+      connected,
+      graphProperties
+    };
   },
   components: {
-    graph
+    //  graph
   }
 };
 </script>

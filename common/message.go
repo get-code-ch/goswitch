@@ -1,4 +1,4 @@
-package model
+package common
 
 import (
 	"encoding/json"
@@ -19,11 +19,11 @@ const (
 	LIST        Action = "List"
 	GETINFO     Action = "GetInfo"
 	SENDINFO    Action = "ReceiveInfo"
-	FAKE        Action = "Fake"
 	SETGPIO     Action = "SetGPIO"
 	GETGPIO     Action = "GetGPIO"
 	GPIOSTATE   Action = "GPIOState"
 	REJECT      Action = "Reject"
+	ICS_LIST    Action = "ICsList"
 )
 
 type Message struct {

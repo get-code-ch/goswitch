@@ -1,0 +1,78 @@
+{
+  "name": "Fake device",
+  "comm_center": {
+    "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
+    "server": "192.168.10.62",
+    "port": "4433",
+    "ssl": false
+  },
+  "adapters": {
+    "i2c": "/dev/i2c-1",
+    "network": "Ethernet"
+  },
+  "ics": [
+    {
+      "address": 32,
+      "name": "32",
+      "description": "Relay expansion module 0x20",
+      "type": "mcp23008",
+      "endpoints": [
+        {
+          "id": "0",
+          "name": "Hardware button",
+          "attributes": {
+            "state": 0,
+            "mode": "push",
+            "duration": 200
+          }
+        },
+        {
+          "id": "1",
+          "name": "Blue LED",
+          "attributes": {
+            "state": 0,
+            "mode": "output"
+          }
+        },
+        {
+          "id": "2",
+          "name": "Hardware switch",
+          "attributes": {
+            "mode": "input"
+          }
+        },
+        {
+          "id": "7",
+          "name": "Relay",
+          "attributes": {
+            "state": 0,
+            "mode": "output"
+          }
+        }
+      ]
+    },
+    {
+      "address": 72,
+      "name": "72",
+      "description": "Analog/Digital Converter light and temperature sensor",
+      "type": "ads1115",
+      "endpoints": [
+        {
+          "id": "AIN3",
+          "name": "Photodiode sensor",
+          "attributes": {
+            "mode": "input"
+          }
+        },
+        {
+          "id": "AIN2",
+          "name": "Temperature sensor",
+          "attributes": {
+            "mode": "input"
+          }
+        }
+      ]
+    }
+  ]
+}
+

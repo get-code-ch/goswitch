@@ -1,17 +1,21 @@
-package controller
+package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/get-code-ch/goswitch/config"
-	"github.com/get-code-ch/goswitch/model"
+	"github.com/get-code-ch/goswitch/common"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 	"regexp"
 	"time"
 )
+
+const defaultControllerConfigFile = "./config/commctr.json"
 
 type CommandCenter struct {
 	active            bool
@@ -19,17 +23,53 @@ type CommandCenter struct {
 	conn              *websocket.Conn
 	devices           map[string]*websocket.Conn
 	clients           map[string]*websocket.Conn
-	me                model.Node
+	me                common.Node
 	ssl               bool
-	cert              config.ConfCertificate
+	cert              ConfCertificate
 	server            string
 	port              string
 	clientRoot        string
-	authorizedDevices []config.AuthorizedDevice
+	authorizedDevices []AuthorizedDevice
 	corsOrigin        bool
 }
 
-func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
+func NewCommCtrConfig(configFile string) *ConfCommCtr {
+
+	// New config creation
+	c := new(ConfCommCtr)
+
+	// If no config file is provided we use "hardcoded" default filepath
+	if configFile == "" {
+		configFile = defaultControllerConfigFile
+	}
+
+	// Testing if config file exist if not, return a fatal error
+	_, err := os.Stat(configFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Panic(fmt.Sprintf("Config file %s not exist\n", configFile))
+		} else {
+			log.Panic(fmt.Sprintf("Something wrong with config file %s -> %v\n", configFile, err))
+		}
+	}
+	buffer, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Printf(fmt.Sprintf("Error reading config file --> %v", err))
+		return nil
+	}
+
+	// Parsing config file
+	json.Unmarshal(buffer, c)
+
+	return c
+}
+
+// TODO Create Stringer interface to return human readable config content
+func (c *ConfCommCtr) String() string {
+	return fmt.Sprintf("Certificate Key %s\n", c.Cert.SslCert)
+}
+
+func NewCommandCenter(conf *ConfCommCtr) *CommandCenter {
 
 	commCtr := new(CommandCenter)
 
@@ -41,7 +81,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	commCtr.server = conf.Server
 	commCtr.port = conf.Port
 	commCtr.clientRoot = conf.ClientRoot
-	commCtr.authorizedDevices = []config.AuthorizedDevice{}
+	commCtr.authorizedDevices = []AuthorizedDevice{}
 
 	for _, authDevice := range conf.AuthorizedDevices {
 		if authDevice.Enabled {
@@ -50,7 +90,7 @@ func NewCommandCenter(conf *config.ConfCommCtr) *CommandCenter {
 	}
 
 	commCtr.corsOrigin = conf.CorsOrigin
-	commCtr.me = model.Node{Id: "CommCtr", Type: model.SERVER}
+	commCtr.me = common.Node{Id: "CommCtr", Type: common.SERVER}
 
 	return commCtr
 }
@@ -116,9 +156,9 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Ask for client registration (DEVICE, CLI or GUI)
-	SendMessage(commCtr, conn, model.REGISTER, commCtr.me)
+	commCtr.Send(conn, common.REGISTER, commCtr.me)
 	// Wait for message
-	msg := new(model.Message)
+	msg := new(common.Message)
 	err = conn.ReadJSON(&msg)
 	commCtr.Invoke(conn, msg.Action, msg.Data, msg.Client)
 
@@ -131,7 +171,11 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 			case <-ticker.C:
 				{
 					//log.Printf("Sending Acknoledge to %v", conn)
-					SendMessage(commCtr, conn, model.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
+					if conn != nil {
+						commCtr.Send(conn, common.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
+					} //else {
+					//	ticker.Stop()
+					//}
 				}
 			}
 		}
@@ -157,15 +201,15 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 						if d.MacAddr == key {
 							commCtr.authorizedDevices[dIdx].IsOnline = false
 							for _, c := range commCtr.clients {
-								SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
+								commCtr.Send(c, common.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
 							}
 						}
 					}
 
 					delete(commCtr.devices, key)
 					for _, client := range commCtr.clients {
-						SendMessage(commCtr, client, model.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
-						commCtr.List(client, nil, model.Node{})
+						commCtr.Send(client, common.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
+						commCtr.List(client, nil, common.Node{})
 					}
 					break
 				}
@@ -174,18 +218,18 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch msg.Client.Type {
-		case model.BROWSER, model.CLI:
+		case common.BROWSER, common.CLI:
 			commCtr.Invoke(commCtr.clients[msg.Client.Id], msg.Action, msg.Data, msg.Client)
-		case model.DEVICE:
+		case common.DEVICE:
 			commCtr.Invoke(commCtr.devices[msg.Client.Id], msg.Action, msg.Data, msg.Client)
 		}
 	}
 }
-func (commCtr *CommandCenter) Send(conn *websocket.Conn, action model.Action, data interface{}) {
-	conn.WriteJSON(model.Message{Action: action, Data: data})
+func (commCtr *CommandCenter) Send(conn *websocket.Conn, action common.Action, data interface{}) {
+	conn.WriteJSON(common.Message{Action: action, Data: data})
 }
 
-func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action, args ...interface{}) {
+func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function common.Action, args ...interface{}) {
 	inputs := make([]reflect.Value, len(args)+1)
 	inputs[0] = reflect.ValueOf(conn)
 	for i := range args {
@@ -195,33 +239,34 @@ func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function model.Action
 	fnc := reflect.ValueOf(commCtr).MethodByName(string(function))
 	if !fnc.IsValid() {
 		//commCtr.conn.WriteJSON(model.Message{Action: "ERROR", Data: fmt.Sprintf("Action %s not found", function)})
-		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Action %s not found", function))
+		commCtr.Send(conn, common.ERROR, fmt.Sprintf("Action %s not found", function))
 	} else {
 		fnc.Call(inputs)
 	}
 }
 
-func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, client model.Node) {
+func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, client common.Node) {
 	d := data.(map[string]interface{})
 	key := d["api_key"]
 	nIfg := d["client"].(map[string]interface{})
 
-	node := new(model.Node)
+	node := new(common.Node)
 
 	node.Id = nIfg["Id"].(string)
-	node.Type = model.NodeType(nIfg["Type"].(string))
+	node.Type = common.NodeType(nIfg["Type"].(string))
 
 	switch node.Type {
-	case model.BROWSER, model.CLI:
+	case common.BROWSER, common.CLI:
 		// We accept only one connection from client/browser
 		if _, exist := commCtr.clients[node.Id]; exist {
-			SendMessage(commCtr, conn, model.REJECT, "Other session is already open in your browser")
-			return
+			commCtr.Send(commCtr.clients[node.Id], common.REJECT, "Session open in other browser window")
+			commCtr.clients[node.Id].Close()
+			delete(commCtr.clients, node.Id)
 		}
 
 		commCtr.clients[node.Id] = conn
-		SendMessage(commCtr, conn, model.ACCEPT, node.Id)
-	case model.DEVICE:
+		commCtr.Send(conn, common.ACCEPT, node.Id)
+	case common.DEVICE:
 		for dIdx, d := range commCtr.authorizedDevices {
 			if d.MacAddr == node.Id && d.ApiKey == key {
 
@@ -233,14 +278,14 @@ func (commCtr *CommandCenter) Register(conn *websocket.Conn, data interface{}, c
 				commCtr.authorizedDevices[dIdx].IsOnline = true
 				commCtr.devices[node.Id] = conn
 				for _, c := range commCtr.clients {
-					SendMessage(commCtr, c, model.ACKNOWLEDGE, fmt.Sprintf("Device %s connected", node.Id))
-					commCtr.List(c, nil, model.Node{})
+					commCtr.Send(c, common.ACKNOWLEDGE, fmt.Sprintf("Device %s connected", node.Id))
+					commCtr.List(c, nil, common.Node{})
 				}
-				SendMessage(commCtr, conn, model.ACCEPT, node.Id)
+				commCtr.Send(conn, common.ACCEPT, node.Id)
 				return
 			}
 		}
-		SendMessage(commCtr, conn, model.REJECT, node.Id)
+		commCtr.Send(conn, common.REJECT, node.Id)
 	}
 }
 
@@ -248,10 +293,10 @@ func (commCtr *CommandCenter) Acknowledge(data interface{}) {
 	log.Printf("Acknowledge received: %s", data.(string))
 }
 
-func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data interface{}, client model.Node) {
+func (commCtr *CommandCenter) Echo(conn *websocket.Conn, data interface{}, client common.Node) {
 
 	log.Printf("Echo request: %v", data)
-	SendMessage(commCtr, conn, model.ACKNOWLEDGE, data.(string))
+	commCtr.Send(conn, common.ACKNOWLEDGE, data.(string))
 
 }
 
@@ -259,57 +304,63 @@ func (commCtr *CommandCenter) Error(conn *websocket.Conn, data interface{}) {
 	log.Printf("ERROR function, data: %v", data)
 }
 
-func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, client model.Node) {
-	SendMessage(commCtr, conn, model.LIST, commCtr.authorizedDevices)
+func (commCtr *CommandCenter) List(conn *websocket.Conn, data interface{}, client common.Node) {
+	commCtr.Send(conn, common.LIST, commCtr.authorizedDevices)
 }
 
-func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, client model.Node) {
-	msg := model.Message{}.SetFromInterface(data)
+func (commCtr *CommandCenter) Broadcast(conn *websocket.Conn, data interface{}, client common.Node) {
+	msg := common.Message{}.SetFromInterface(data)
 
 	switch msg.Client.Type {
-	case model.BROWSER, model.CLI:
+	case common.BROWSER, common.CLI:
 		for _, destConn := range commCtr.clients {
 			if destConn != conn {
-				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+				commCtr.Send(destConn, msg.Action, msg.Data)
 			}
 		}
-	case model.DEVICE:
+	case common.DEVICE:
 		for _, destConn := range commCtr.devices {
 			if destConn != conn {
-				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+				commCtr.Send(destConn, msg.Action, msg.Data)
 			}
 		}
 	default:
 		for _, destConn := range commCtr.clients {
 			if destConn != conn {
-				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+				commCtr.Send(destConn, msg.Action, msg.Data)
 			}
 		}
 		for _, destConn := range commCtr.devices {
 			if destConn != conn {
-				SendMessage(commCtr, destConn, msg.Action, msg.Data)
+				commCtr.Send(destConn, msg.Action, msg.Data)
 			}
 		}
 	}
 }
 
-func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client model.Node) {
+func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, client common.Node) {
 	var destConn *websocket.Conn
 
-	msg := model.Message{}.SetFromInterface(data)
+	msg := common.Message{}.SetFromInterface(data)
 
 	switch msg.Client.Type {
-	case model.BROWSER, model.CLI:
+	case common.BROWSER, common.CLI:
 		destConn = commCtr.clients[msg.Client.Id]
-	case model.DEVICE:
+	case common.DEVICE:
 		destConn = commCtr.devices[msg.Client.Id]
 	default:
 		destConn = nil
 	}
 
 	if destConn != nil {
-		SendMessage(commCtr, destConn, msg.Action, msg.Data)
+		commCtr.Send(destConn, msg.Action, msg.Data)
 	} else {
-		SendMessage(commCtr, conn, model.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
+		//SendMessage(commCtr, conn, common.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
+		log.Printf("Device %s not found", msg.Client.Id)
 	}
+}
+
+func (commCtr *CommandCenter) ICsList(conn *websocket.Conn, data interface{}, client common.Node) {
+
+	log.Printf("ICsList, data: %v", data)
 }

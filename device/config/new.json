@@ -1,0 +1,77 @@
+{
+  "name": "pizero01",
+  "comm_center": {
+    "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFw",
+    "server": "192.168.10.62",
+    "port": "4433",
+    "ssl": false
+  },
+  "adapters": {
+    "i2c": "/dev/i2c-1",
+    "network": "wlan0"
+  },
+  "ics": [
+    {
+      "address": 32,
+      "name": "Expansion module",
+      "description": "Relay expansion module 0x20",
+      "type": "mcp23008",
+      "endpoints": [
+        {
+          "id": "0",
+          "name": "Photo resistor",
+          "attributes": {
+            "state": 0,
+            "mode": "push",
+            "duration": 200,
+            "slave": "1"
+          }
+        },
+        {
+          "id": "1",
+          "name": "Blue LED",
+          "attributes": {
+            "state": 0,
+            "mode": "output"
+          }
+        },
+        {
+          "id": "2",
+          "name": "Button",
+          "attributes": {
+            "mode": "input",
+            "slave": "1"
+          }
+        }
+      ]
+    },
+    {
+      "address": 72,
+      "name": "ADC",
+      "description": "Analog/Digital Converter light and temperature sensor",
+      "type": "ads1115",
+      "endpoints": [
+        {
+          "id": "AIN3",
+          "name": "Photodiode sensor",
+          "refresh_rate": 1000,
+          "attributes": {
+            "mode": "value",
+            "unit": "[V]"
+          }
+        },
+        {
+          "id": "AIN2",
+          "name": "Temperature sensor",
+          "refresh_rate": 10000,
+          "attributes": {
+            "mode": "value",
+            "unit": "[°C]",
+            "scale": 100
+          }
+        }
+      ]
+    }
+  ]
+}
+

@@ -8,11 +8,11 @@ export default function useController() {
     let reject = false;
 
     const controller = reactive({
-        msg:"",
-        status:"",
-        deviceId:"",
+        msg: "",
+        status: "",
+        deviceId: "",
         devices: null,
-        switches: null,
+        ICs: null,
         connected: false,
         graphProperties: {
             width: 1000,
@@ -41,16 +41,16 @@ export default function useController() {
             connectionOnError(event);
         }
 
-        connection.onopen = function(event) {
+        connection.onopen = function (event) {
             connectionOnOpen(event);
         }
 
-        connection.onclose = function(event) {
+        connection.onclose = function (event) {
             connectionOnClose(event);
         }
 
         connection.onmessage = function (event) {
-            console.log(event.data);
+            console.log(event);
             controller.msg = event.data;
             obj = JSON.parse(event.data);
             switch (obj.action.toLowerCase()) {
@@ -81,29 +81,37 @@ export default function useController() {
                     break;
                 case "gpiostate":
                     controller.status = "GPIO State received";
-                    controller.msg = obj.data;
-                    if (controller.switches != null) {
-                        controller.switches.forEach(swc => {
-                            if (swc.mac_addr == obj.data.mac_addr && swc.address == obj.data.address && swc.gpio == obj.data.gpio) {
-                                swc.state = obj.data.state;
-                            }
-                        });
-                    }
+                    // Loop all gpio state and update status on
+                    obj.data.forEach(ep => {
+                        let icepIdx = controller.ICs[ep.address].endPoints.findIndex((icep) => icep.id == ep.id)
+                        if (icepIdx >= 0) {
+                            controller.ICs[ep.address].endPoints[icepIdx].attributes.state = ep.state
+                        }
+
+                    })
                     break;
                 case "list":
                     controller.status = "Device list returned";
                     controller.msg = obj.data;
                     controller.devices = obj.data;
                     if (controller.devices.findIndex((d) => d == controller.deviceId) == -1) {
-                     controller.deviceId = "";
-                     controller.switches = null;
+                        controller.deviceId = "";
                     }
 
                     break;
                 case "receiveinfo":
                     controller.status = "Device info received";
                     controller.msg = obj.data;
-                    controller.switches = obj.data.device.switches;
+
+                    if ('endPoints' in obj.data) {
+                        if (controller.ICs == null) {
+                            controller.ICs = {}
+                        }
+                        controller.ICs[obj.data.address] = {}
+                        controller.ICs[obj.data.address].endPoints = obj.data.endPoints
+                        controller.ICs[obj.data.address].type = obj.data.type
+                    }
+
                     break;
                 case "register":
                     connection.send(JSON.stringify({
@@ -136,10 +144,10 @@ export default function useController() {
         controller.connected = 'disconnected';
         connection = null;
         controller.devices = null;
-        controller.switches = null;
+        controller.ICs = null;
         if (!reject) {
             console.log("Socket is closed, Reconnect in 5 seconds -> ", event.data);
-            setTimeout(() =>{
+            setTimeout(() => {
                 newConnection();
             }, 5000);
         } else {
@@ -150,7 +158,8 @@ export default function useController() {
     function deviceInfo(deviceId) {
         controller.deviceId = deviceId;
         let device = {"Type": "device", "Id": deviceId};
-        let data = {"Action": "GetInfo",
+        let data = {
+            "Action": "GetInfo",
             "data": client,
             "client": device
         };
@@ -159,14 +168,13 @@ export default function useController() {
             "action": "Relay",
             "data": data
         }));
-        console.log(deviceId)
     }
 
 
-    function toggleGpio(deviceId, address, gpio ) {
+    function toggleGpio(deviceId, address, gpio) {
         let device = {"Type": "device", "Id": deviceId};
 
-        let i2c = {"command":"reverse", "id": deviceId, "address": "" + address, "gpio": "" + gpio};
+        let i2c = {"command": "reverse", "id": deviceId, "address": "" + address, "gpio": "" + gpio};
         let data = {"Action": "SetGPIO", "client": device, "data": {"i2c": i2c, "client": client}};
 
         connection.send(JSON.stringify({
@@ -176,11 +184,37 @@ export default function useController() {
         }))
     }
 
+    function btnClick(type, key, id, attributes) {
+
+        switch (type.toLowerCase()){
+            case "mcp23008":
+                if (attributes.mode.toLowerCase() == "output" || attributes.mode.toLowerCase() == "push") {
+                    let device = {"Type":"device", "Id":""};
+                    let data = {"Action": "SetGPIO", "client": device, "data": {"client": client}};
+
+                    controller.status = "Btn " + key + " " + id + " clicked!"
+                    connection.send(JSON.stringify({
+                        "action": "Relay",
+                        "device": device,
+                        "data": data
+                    }));
+                } else {
+                    controller.status = "Input mode for mcp23008, No allowed action";
+                }
+                break;
+            case "ads1115":
+                controller.status = "No allowed action for ads115";
+                break;
+        }
+
+
+    }
+
     function makeId(length) {
-        let result           = '';
-        let characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        let characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
         let charactersLength = characters.length;
-        for ( let i = 0; i < length; i++ ) {
+        for (let i = 0; i < length; i++) {
             result += characters.charAt(Math.floor(Math.random() * charactersLength));
         }
         return result;
@@ -195,7 +229,7 @@ export default function useController() {
             port = "4433";
             host = "precision";
         }
-        return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port  + "/ws";
+        return protocol.toLowerCase() == "https:" ? "wss://" + host + ":" + port + "/ws" : "ws://" + host + ":" + port + "/ws";
 
     }
 
@@ -204,16 +238,16 @@ export default function useController() {
         let notification = null;
         let isMobile = navigator.userAgent.match(/(iPhone|iPod|iPad|Android|webOS|BlackBerry|IEMobile|Opera Mini)/i)
 
-         if (!("Notification" in window) || isMobile) {
-            return ;
+        if (!("Notification" in window) || isMobile) {
+            return;
         }
 
         if (Notification.permission === "granted") {
             notification = new Notification(msg);
         } else {
-            Notification.requestPermission().then(function(permission) {
+            Notification.requestPermission().then(function (permission) {
                 if (permission === "granted") {
-                   notification = new Notification(msg);
+                    notification = new Notification(msg);
                 }
             })
         }
@@ -223,12 +257,11 @@ export default function useController() {
         let array = [];
 
         for (let i = 1; i < count; i++) {
-            array.push({"x": i, "y": i*i});
+            array.push({"x": i, "y": i * i});
         }
         return array
     }
 
-
-    return { ...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio, drawLines };
+    return {...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio, btnClick, drawLines};
 
 }

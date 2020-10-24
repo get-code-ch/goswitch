@@ -7,7 +7,7 @@
     "ssl_key": "./ssl/server.key",
     "ssl_cert": "./ssl/server.crt"
   },
-  "client_root": "./gsvue/dist/",
+  "client_root": "./client/dist/",
   "cors_origin": false,
 
   "authorized_devices": [
