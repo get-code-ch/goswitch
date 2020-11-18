@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type CommService struct {
 	url    url.URL
 	header http.Header
 	conn   *websocket.Conn
+	mutex  sync.Mutex
 	mac    string
 }
 
@@ -60,17 +62,27 @@ func (s *CommService) ConnectCommCenter(commCtr common.CommCenter, netAdapter st
 }
 
 func (s *CommService) Send(action common.Action, data interface{}) {
-	s.conn.WriteJSON(common.Message{Action: action, Data: data, Client: s.me, Server: s.server})
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.conn != nil {
+		if err := s.conn.WriteJSON(common.Message{Action: action, Data: data, Client: s.me, Server: s.server}); err != nil {
+			log.Printf("Error sending message: %v", err)
+			if err := s.conn.Close(); err != nil {
+				log.Printf("Error closing connection --> %v", err)
+			}
+			s.conn = nil
+		}
+	}
 }
 
 func (s *CommService) Listen(channel chan int, device *Device) {
+	var err error
+
 	msg := new(common.Message)
 	count := 0
 
 	for {
-		if err := s.conn.ReadJSON(&msg); err != nil {
-			log.Printf("Connection error -> %v", err)
-			s.conn = nil
+		if s.conn == nil {
 			for {
 				time.Sleep(5 * time.Second)
 				s.conn, _, err = websocket.DefaultDialer.Dial(s.url.String(), s.header)
@@ -81,6 +93,10 @@ func (s *CommService) Listen(channel chan int, device *Device) {
 					log.Printf("Connection error (%d) -> %v", count, err)
 				}
 			}
+		}
+		if err := s.conn.ReadJSON(&msg); err != nil {
+			log.Printf("Connection error -> %v", err)
+			s.conn = nil
 			continue
 		}
 		device.Invoke(msg.Action, msg.Data)

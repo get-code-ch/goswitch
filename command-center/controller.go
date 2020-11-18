@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -9,9 +10,11 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"regexp"
+	"sync"
 	"time"
 )
 
@@ -31,6 +34,8 @@ type CommandCenter struct {
 	clientRoot        string
 	authorizedDevices []AuthorizedDevice
 	corsOrigin        bool
+	tmeConf           TmeConf
+	mutex             sync.Mutex
 }
 
 func NewCommCtrConfig(configFile string) *ConfCommCtr {
@@ -52,16 +57,16 @@ func NewCommCtrConfig(configFile string) *ConfCommCtr {
 			log.Panic(fmt.Sprintf("Something wrong with config file %s -> %v\n", configFile, err))
 		}
 	}
-	buffer, err := ioutil.ReadFile(configFile)
-	if err != nil {
+
+	// Reading and parsing configuration file
+	if buffer, err := ioutil.ReadFile(configFile); err != nil {
 		log.Printf(fmt.Sprintf("Error reading config file --> %v", err))
 		return nil
+	} else {
+		json.Unmarshal(buffer, c)
+		return c
 	}
 
-	// Parsing config file
-	json.Unmarshal(buffer, c)
-
-	return c
 }
 
 // TODO Create Stringer interface to return human readable config content
@@ -91,6 +96,16 @@ func NewCommandCenter(conf *ConfCommCtr) *CommandCenter {
 
 	commCtr.corsOrigin = conf.CorsOrigin
 	commCtr.me = common.Node{Id: "CommCtr", Type: common.SERVER}
+
+	// Get Telegram config
+	commCtr.tmeConf = TmeConf{}
+	if _, err := os.Stat(conf.TelegramConf); err == nil {
+		if buffer, err := ioutil.ReadFile(conf.TelegramConf); err == nil {
+			if err := json.Unmarshal(buffer, &commCtr.tmeConf); err != nil {
+				log.Printf("Error getting Telegram configuration --> %v", err)
+			}
+		}
+	}
 
 	return commCtr
 }
@@ -170,12 +185,7 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 			select {
 			case <-ticker.C:
 				{
-					//log.Printf("Sending Acknoledge to %v", conn)
-					if conn != nil {
-						commCtr.Send(conn, common.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
-					} //else {
-					//	ticker.Stop()
-					//}
+					commCtr.Send(conn, common.ACKNOWLEDGE, fmt.Sprintf("Ping %s", time.Now().Format("2006-01-02 15:04:05")))
 				}
 			}
 		}
@@ -191,12 +201,12 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 			for key, value := range commCtr.clients {
 				if value == conn {
 					delete(commCtr.clients, key)
-					break
+					conn.Close()
+					return
 				}
 			}
 			for key, value := range commCtr.devices {
 				if value == conn {
-
 					for dIdx, d := range commCtr.authorizedDevices {
 						if d.MacAddr == key {
 							commCtr.authorizedDevices[dIdx].IsOnline = false
@@ -211,7 +221,8 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 						commCtr.Send(client, common.ACKNOWLEDGE, fmt.Sprintf("Device %s disconnected", key))
 						commCtr.List(client, nil, common.Node{})
 					}
-					break
+					conn.Close()
+					return
 				}
 			}
 			return
@@ -226,7 +237,15 @@ func (commCtr *CommandCenter) serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (commCtr *CommandCenter) Send(conn *websocket.Conn, action common.Action, data interface{}) {
-	conn.WriteJSON(common.Message{Action: action, Data: data})
+	commCtr.mutex.Lock()
+	defer commCtr.mutex.Unlock()
+	if conn != nil {
+		if err := conn.WriteJSON(common.Message{Action: action, Data: data}); err != nil {
+			log.Printf("Error sending message: %v", err)
+			conn.Close()
+			conn = nil
+		}
+	}
 }
 
 func (commCtr *CommandCenter) Invoke(conn *websocket.Conn, function common.Action, args ...interface{}) {
@@ -358,6 +377,31 @@ func (commCtr *CommandCenter) Relay(conn *websocket.Conn, data interface{}, clie
 		//SendMessage(commCtr, conn, common.ERROR, fmt.Sprintf("Device %s not found", msg.Client.Id))
 		log.Printf("Device %s not found", msg.Client.Id)
 	}
+}
+
+func (commCtr *CommandCenter) ToTelegram(conn *websocket.Conn, data interface{}, client common.Node) {
+
+	if commCtr.tmeConf == (TmeConf{}) {
+		log.Printf("Telegram bot not configured, message ignored")
+		return
+	}
+	msg := common.Message{}.SetFromInterface(data)
+
+	tmeUrl := url.URL{Host: "api.telegram.org", Scheme: "https", Path: "/" + commCtr.tmeConf.BotId + "/sendMessage"}
+	tmeBody, _ := json.Marshal(TmeMessage{ChatId: commCtr.tmeConf.ChatId, DisableNotification: false, Text: msg.Data.(string)})
+
+	if request, err := http.NewRequest("POST", tmeUrl.String(), bytes.NewBuffer(tmeBody)); err == nil {
+		request.Header.Set("Content-Type", "application/json")
+		client := &http.Client{}
+		if response, err := client.Do(request); err != nil {
+			log.Printf("Error sending message to Telegram --> %v\n", err)
+		} else {
+			log.Printf("Message sent to Telegram with status %d\n", response.StatusCode)
+		}
+	} else {
+		log.Printf("Error creation http Request --> %v\n", err)
+	}
+
 }
 
 func (commCtr *CommandCenter) ICsList(conn *websocket.Conn, data interface{}, client common.Node) {

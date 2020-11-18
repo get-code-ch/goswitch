@@ -22,17 +22,22 @@
           "name": "Photo resistor",
           "attributes": {
             "state": 0,
-            "mode": "push",
-            "duration": 200,
-            "slave": "1"
+            "mode": "input",
+            "slave": "1",
+            "telegram": {
+              "notification": "no"
+            }
           }
         },
         {
           "id": "1",
-          "name": "Blue LED",
+          "name": "Red LED",
           "attributes": {
             "state": 0,
             "mode": "output"
+          },
+          "telegram": {
+            "notification": "onchange"
           }
         },
         {
@@ -41,6 +46,33 @@
           "attributes": {
             "mode": "input",
             "slave": "1"
+          },
+          "telegram": {
+            "notification": "onchange"
+          }
+        },
+        {
+          "id": "3",
+          "name": "Yellow LED",
+          "attributes": {
+            "state": 0,
+            "mode": "output"
+          },
+          "telegram": {
+            "notification": "no"
+          }
+        },
+        {
+          "id": "7",
+          "name": "Fake push",
+          "attributes": {
+            "state": 0,
+            "mode": "push",
+            "duration": 200,
+            "slave": "3"
+          },
+          "telegram": {
+            "notification": "no"
           }
         }
       ]
@@ -53,21 +85,59 @@
       "endpoints": [
         {
           "id": "AIN3",
-          "name": "Photodiode sensor",
-          "refresh_rate": 1000,
+          "name": "Ambient light",
+          "refresh_interval": 10,
           "attributes": {
             "mode": "value",
-            "unit": "[V]"
+            "unit": "[lx]",
+            "scale": 1,
+            "convert": "ToLux"
+          },
+          "telegram": {
+            "notification": "no",
+            "min": 400
           }
         },
         {
           "id": "AIN2",
-          "name": "Temperature sensor",
-          "refresh_rate": 10000,
+          "name": "Temperature",
+          "refresh_interval": 3600,
           "attributes": {
             "mode": "value",
             "unit": "[°C]",
             "scale": 100
+          },
+          "telegram": {
+            "notification": "yes"
+          }
+        },
+        {
+          "id": "AIN1",
+          "name": "Ohm meter",
+          "refresh_interval": 30,
+          "attributes": {
+            "mode": "value",
+            "unit": "[KOhm]",
+            "scale": 0.001,
+            "vcc": 5.07,
+            "reference": 330000,
+            "convert": "OhmMeter"
+          },
+          "telegram": {
+            "notification": "no"
+          }
+        },
+        {
+          "id": "AIN0",
+          "name": "VDD",
+          "refresh_interval": 14400,
+          "attributes": {
+            "mode": "value",
+            "unit": "[V]",
+            "scale": 1
+          },
+          "telegram": {
+            "notification": "no"
           }
         }
       ]

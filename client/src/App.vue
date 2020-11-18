@@ -21,12 +21,41 @@
     <div class="state-btn-list">
       <ul>
         <div v-for="(ic, key) in ICs" :key="ic.address">
-          <li v-for="ep in ic.endPoints" :key="ep.id">
-            <button class="state-btn" v-bind:class="[ep.attributes.state == 0 ? 'off' : 'on']"
-                    @click="btnClick(ic.type, key, ep.id, ep.attributes)">
-              <!-- {{ key }}|{{ ep.id }} - -->{{ ep.name }}
-            </button>
-          </li>
+          <div v-if="ic.type == 'mcp23008'">
+            <li v-for="ep in ic.endPoints" :key="ep.id">
+              <button class="state-btn" v-bind:class="[ep.attributes.state == 0 ? 'off' : 'on']"
+                      @click="btnClickMCP23008(deviceId, ic.type, key, ep.id, ep.attributes)">
+                {{ ep.name }}
+              </button>
+            </li>
+          </div>
+          <div v-if="ic.type == 'ads1115'">
+            <li v-for="ep in ic.endPoints" :key="ep.id">
+              <button v-if="ep.attributes.value != null" class="value-btn"
+                      @click="btnClickADS1115(deviceId, ic.type, key, ep.id, ep.attributes)">
+                {{ ep.name }}: {{
+                  ep.attributes.value.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                  })
+                }} {{ ep.attributes.unit }}
+              </button>
+              <div v-if="ep.history">
+                <ul class="values">
+                  <li v-for="idx in 10" :key="idx" >
+                    <span v-if="!isNaN(ep.history[idx])">
+                      {{
+                        ep.history[idx].toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        })
+                      }} {{ ep.attributes.unit }}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </li>
+          </div>
         </div>
       </ul>
     </div>
@@ -55,7 +84,7 @@ export default {
 
     })
 
-    const {genApiKey, newConnection, deviceInfo, toggleGpio, btnClick, msg, status, deviceId, devices, ICs, connected, graphProperties} = useController();
+    const {genApiKey, newConnection, deviceInfo, toggleGpio, btnClickMCP23008, btnClickADS1115, msg, status, deviceId, devices, ICs, connected, graphProperties} = useController();
     return {
       msg,
       status,
@@ -64,7 +93,8 @@ export default {
       ICs,
       deviceInfo,
       toggleGpio,
-      btnClick,
+      btnClickMCP23008,
+      btnClickADS1115,
       connected,
       graphProperties
     };

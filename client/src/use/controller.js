@@ -50,7 +50,11 @@ export default function useController() {
         }
 
         connection.onmessage = function (event) {
-            console.log(event);
+            let device = null;
+            let data = null;
+            let hl = 0;
+
+            //console.log(event);
             controller.msg = event.data;
             obj = JSON.parse(event.data);
             switch (obj.action.toLowerCase()) {
@@ -87,8 +91,34 @@ export default function useController() {
                         if (icepIdx >= 0) {
                             controller.ICs[ep.address].endPoints[icepIdx].attributes.state = ep.state
                         }
-
                     })
+                    break;
+                case "digitalvalue":
+
+                    controller.status = "New digital value received";
+
+                    obj.data.forEach(ep => {
+                        let icepIdx = controller.ICs[ep.address].endPoints.findIndex((icep) => icep.id == ep.id)
+                        if (icepIdx >= 0) {
+                            controller.ICs[ep.address].endPoints[icepIdx].attributes.value = ep.value
+
+                            // Add value to history
+                            if (!Object.prototype.hasOwnProperty.call(controller.ICs[ep.address].endPoints[icepIdx], "history")) {
+                                controller.ICs[ep.address].endPoints[icepIdx].history = new Array(1);
+                                controller.ICs[ep.address].endPoints[icepIdx].history[0] = controller.ICs[ep.address].endPoints[icepIdx].attributes.value
+                            } else {
+                                hl = controller.ICs[ep.address].endPoints[icepIdx].history.length;
+                                if (hl <= 10) {
+                                    controller.ICs[ep.address].endPoints[icepIdx].history.push(controller.ICs[ep.address].endPoints[icepIdx].attributes.value);
+                                } else {
+                                    controller.ICs[ep.address].endPoints[icepIdx].history.push(controller.ICs[ep.address].endPoints[icepIdx].attributes.value);
+                                    controller.ICs[ep.address].endPoints[icepIdx].history.shift();
+                                }
+                            }
+                        }
+                    })
+
+
                     break;
                 case "list":
                     controller.status = "Device list returned";
@@ -110,8 +140,35 @@ export default function useController() {
                         controller.ICs[obj.data.address] = {}
                         controller.ICs[obj.data.address].endPoints = obj.data.endPoints
                         controller.ICs[obj.data.address].type = obj.data.type
+                        //controller.ICs[obj.data.address].history = [];
                     }
 
+                    if (controller.msg.type == "mcp23008") {
+                        device = {"Type": "device", "Id": controller.deviceId};
+                        data = {
+                            "Action": "GetAllGPIOState",
+                            "data": client,
+                            "client": device
+                        };
+                        connection.send(JSON.stringify({
+                            "client": device,
+                            "action": "Relay",
+                            "data": data
+                        }));
+                    }
+                    if (controller.msg.type == "ads1115") {
+                        device = {"Type": "device", "Id": controller.deviceId};
+                        data = {
+                            "Action": "GetAllValues",
+                            "data": client,
+                            "client": device
+                        };
+                        connection.send(JSON.stringify({
+                            "client": device,
+                            "action": "Relay",
+                            "data": data
+                        }));
+                    }
                     break;
                 case "register":
                     connection.send(JSON.stringify({
@@ -184,30 +241,43 @@ export default function useController() {
         }))
     }
 
-    function btnClick(type, key, id, attributes) {
+    function btnClickMCP23008(deviceId, type, key, id, attributes) {
+        let device = null;
+        let data = null;
+        if (attributes.mode.toLowerCase() === "output" || attributes.mode.toLowerCase() == "push") {
+            attributes.state = Math.abs(attributes.state - 1)
+            device = {"Type": "device", "Id": deviceId};
+            data = {
+                "Action": "SetGPIO",
+                "client": device,
+                "data": {"client": client, "address": key, "id": id, "attributes": attributes}
+            };
 
-        switch (type.toLowerCase()){
-            case "mcp23008":
-                if (attributes.mode.toLowerCase() == "output" || attributes.mode.toLowerCase() == "push") {
-                    let device = {"Type":"device", "Id":""};
-                    let data = {"Action": "SetGPIO", "client": device, "data": {"client": client}};
-
-                    controller.status = "Btn " + key + " " + id + " clicked!"
-                    connection.send(JSON.stringify({
-                        "action": "Relay",
-                        "device": device,
-                        "data": data
-                    }));
-                } else {
-                    controller.status = "Input mode for mcp23008, No allowed action";
-                }
-                break;
-            case "ads1115":
-                controller.status = "No allowed action for ads115";
-                break;
+            controller.status = "Btn " + key + " " + id + " clicked!"
+            connection.send(JSON.stringify({
+                "action": "Relay",
+                "device": device,
+                "data": data
+            }));
+        } else {
+            controller.status = "Input mode for mcp23008, No allowed action";
         }
+    }
 
-
+    function btnClickADS1115(deviceId, type, key, id, attributes) {
+        let device = null;
+        let data = null;
+        device = {"Type": "device", "Id": controller.deviceId};
+        data = {
+            "Action": "GetValue",
+            "client": device,
+            "data": {"client": client, "address": key, "id": id, "attributes": attributes}
+        };
+        connection.send(JSON.stringify({
+            "action": "Relay",
+            "device": device,
+            "data": data
+        }));
     }
 
     function makeId(length) {
@@ -262,6 +332,15 @@ export default function useController() {
         return array
     }
 
-    return {...toRefs(controller), genApiKey, newConnection, deviceInfo, toggleGpio, btnClick, drawLines};
+    return {
+        ...toRefs(controller),
+        genApiKey,
+        newConnection,
+        deviceInfo,
+        toggleGpio,
+        btnClickADS1115,
+        btnClickMCP23008,
+        drawLines
+    };
 
 }

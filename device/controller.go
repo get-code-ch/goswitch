@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 )
 
 // NewDevice create a new device handler
@@ -134,14 +135,90 @@ func (device *Device) GetInfo(data interface{}) {
 func (device *Device) SetGPIO(data interface{}) {
 
 	request := data.(map[string]interface{})
-	arguments := request["i2c"].(map[string]interface{})
 
-	log.Printf("Received 'SetGPIO' Request --> %v", arguments)
+	address, _ := strconv.Atoi(request["address"].(string))
+	id, _ := strconv.Atoi(request["id"].(string))
+	state := int(request["attributes"].(map[string]interface{})["state"].(float64))
 
+	for _, ic := range device.icService {
+		if ic.Address == address {
+			ic.writeGPIO(id, state)
+			ic.interrupt <- byte(id)
+		}
+	}
 }
 
 func (device *Device) GetAllGPIOState(data interface{}) {
 
-	log.Printf("Received 'GetAllGPIOState' Request --> %v", data)
+	for _, ic := range device.icService {
+		if ic.Type == common.MCP23008 {
+			var endPoints []map[string]interface{}
 
+			for _, ep := range ic.endPoints {
+				id, _ := strconv.Atoi(ep.Id)
+				state := ic.readGPIO(id)
+				endPoint := make(map[string]interface{})
+				endPoint["address"] = ic.Address
+				endPoint["gpio"] = id
+				endPoint["id"] = id
+				endPoint["state"] = state
+				endPoint["value"] = state
+				endPoint["type"] = common.MCP23008
+				endPoints = append(endPoints, endPoint)
+			}
+
+			msg := common.Message{Action: common.GPIOSTATE, Data: endPoints, Client: common.Node{Type: common.BROWSER}, Server: ic.commService.me}
+			ic.commService.Send(common.BROADCAST, msg)
+		}
+	}
+}
+
+func (device *Device) GetValue(data interface{}) {
+	request := data.(map[string]interface{})
+
+	address, _ := strconv.Atoi(request["address"].(string))
+	id := request["id"].(string)
+
+	var endPoints []map[string]interface{}
+	for _, ic := range device.icService {
+		if ic.Address == address {
+			for _, ep := range ic.endPoints {
+				if ep.Id == id {
+					endPoint := make(map[string]interface{})
+					endPoint["address"] = ic.Address
+					endPoint["id"] = id
+					endPoint["value"] = ic.readValue(id)
+					endPoint["attributes"] = ep.Attributes
+					endPoint["type"] = common.ADS1115
+					endPoints = append(endPoints, endPoint)
+
+					msg := common.Message{Action: common.DIGITALVALUE, Data: endPoints, Client: common.Node{Type: common.BROWSER}, Server: ic.commService.me}
+					ic.commService.Send(common.BROADCAST, msg)
+					break
+				}
+			}
+		}
+	}
+}
+
+func (device *Device) GetAllValues(data interface{}) {
+	for _, ic := range device.icService {
+		if ic.Type == common.ADS1115 {
+			var endPoints []map[string]interface{}
+
+			for _, ep := range ic.endPoints {
+				id := ep.Id
+				endPoint := make(map[string]interface{})
+				endPoint["address"] = ic.Address
+				endPoint["id"] = id
+				endPoint["value"] = ic.readValue(id)
+				endPoint["attributes"] = ep.Attributes
+				endPoint["type"] = common.ADS1115
+				endPoints = append(endPoints, endPoint)
+			}
+
+			msg := common.Message{Action: common.DIGITALVALUE, Data: endPoints, Client: common.Node{Type: common.BROWSER}, Server: ic.commService.me}
+			ic.commService.Send(common.BROADCAST, msg)
+		}
+	}
 }

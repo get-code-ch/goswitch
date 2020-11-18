@@ -5,3 +5,4 @@ set GOARCH=arm
 set GOARM=5
 set GOOS=linux
 go build  -o ./release/goswitch-arm/gsdevice ./device/
+copy .\device\config\new.json .\release\goswitch-arm\config\

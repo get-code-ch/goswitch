@@ -21,10 +21,27 @@ type IC struct {
 }
 
 type Endpoint struct {
-	Id         string     `json:"id"`
-	Name       string     `json:"name"`
-	Attributes Attributes `json:"attributes"`
+	Id              string     `json:"id"`
+	Name            string     `json:"name"`
+	RefreshInterval int        `json:"refresh_interval"`
+	Telegram        Telegram   `json:"telegram,omitempty"`
+	Attributes      Attributes `json:"attributes"`
 }
+
+type Telegram struct {
+	Notification TmeNotification `json:"notification"`
+	Max          float64         `json:"max,omitempty"`
+	Min          float64         `json:"min,omitempty"`
+}
+
+type TmeNotification string
+
+const (
+	ONCHANGE TmeNotification = "onchange"
+	VALUE    TmeNotification = "value"
+	YES      TmeNotification = "yes"
+	NO       TmeNotification = "no"
+)
 
 type Attributes map[string]interface{}
 

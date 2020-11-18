@@ -10,6 +10,8 @@
   "client_root": "./client/dist/",
   "cors_origin": false,
 
+  "telegram_conf": "./command-center/telegram.json",
+
   "authorized_devices": [
 
     {

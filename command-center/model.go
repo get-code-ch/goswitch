@@ -6,6 +6,7 @@ type ConfCommCtr struct {
 	Port              string             `json:"port"`
 	Ssl               bool               `json:"ssl"`
 	Cert              ConfCertificate    `json:"cert,omitempty"`
+	TelegramConf      string             `json:"telegram_conf"`
 	ClientRoot        string             `json:"client_root"`
 	AuthorizedDevices []AuthorizedDevice `json:"authorized_devices"`
 	CorsOrigin        bool               `json:"cors_origin"`
@@ -22,4 +23,15 @@ type AuthorizedDevice struct {
 type ConfCertificate struct {
 	SslKey  string `json:"ssl_key"`
 	SslCert string `json:"ssl_cert,"`
+}
+
+type TmeConf struct {
+	BotId  string `json:"bot_id"`
+	ChatId int64  `json:"chat_id"`
+}
+
+type TmeMessage struct {
+	ChatId              int64  `json:"chat_id"`
+	Text                string `json:"text"`
+	DisableNotification bool   `json:"disable_notification"`
 }
